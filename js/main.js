@@ -2,7 +2,7 @@ import { renderScreen } from './screens.js';
 
 const app = document.getElementById('app');
 
-// Створюємо основний контейнер
+// Основний контейнер
 const container = document.createElement('div');
 container.className = 'playable-container';
 app.appendChild(container);
