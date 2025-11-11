@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <title>Gates of Olympus Playable (Full Fix v2)</title>
+  <title>Gates of Olympus Playable (Full Fix)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -503,9 +503,9 @@
         btnText: "SPIN",
         grid: gridForWin1,
         spinDuration: 'short',
-        winAmount: 3.0, // (ВИПРАВЛЕНО) Сума зменшена
+        winAmount: 15.0, // (Нова функція)
         cascades: [
-          { wins: winsForWin1, nextGrid: gridForWin1_C2, winAmount: 1.5 } // 1 каскад
+          { wins: winsForWin1, nextGrid: gridForWin1_C2, winAmount: 5.0 } // 1 каскад
         ]
       },
       "win2": {
@@ -515,10 +515,10 @@
         btnText: "SPIN",
         grid: gridForWin2,
         spinDuration: 'medium',
-        winAmount: 5.0, // (ВИПРАВЛЕНО) Сума зменшена
+        winAmount: 25.0, // (Нова функція)
         cascades: [
-          { wins: winsForWin2_C1, nextGrid: gridForWin2_C2_Data, winAmount: 2.5 }, // Каскад 1
-          { wins: winsForWin2_C2, nextGrid: gridForFake, winAmount: 2.5 }       // Каскад 2
+          { wins: winsForWin2_C1, nextGrid: gridForWin2_C2_Data, winAmount: 10.0 }, // Каскад 1
+          { wins: winsForWin2_C2, nextGrid: gridForFake, winAmount: 10.0 }       // Каскад 2
         ]
       },
       "fake": {
@@ -528,7 +528,7 @@
         btnText: "SPIN",
         grid: gridForFake,
         spinDuration: 'long',
-        winAmount: 0.2, // (ВИПРАВЛЕНО) Сума зменшена
+        winAmount: 1.0, // (Нова функція)
         cascades: [
           { wins: winsForFake, nextGrid: null, winAmount: 0 } // Недостатньо для виграшу
         ]
@@ -540,11 +540,11 @@
         btnText: "SPIN",
         grid: gridForMega,
         spinDuration: 'long',
-        winAmount: 10.0, // (ВИПРАВЛЕНО) Сума зменшена
+        winAmount: 50.0, // (Нова функція)
         cascades: [
-          { wins: winsForMega_C1, nextGrid: gridForMega_C2_Data, winAmount: 5.0 }, // Каскад 1
-          { wins: winsForMega_C2, nextGrid: gridForMega_C3_Data, winAmount: 5.0 }, // Каскад 2
-          { wins: winsForMega_C3, nextGrid: gridForWelcome, winAmount: 10.0 } // Каскад 3
+          { wins: winsForMega_C1, nextGrid: gridForMega_C2_Data, winAmount: 25.0 }, // Каскад 1
+          { wins: winsForMega_C2, nextGrid: gridForMega_C3_Data, winAmount: 25.0 }, // Каскад 2
+          { wins: winsForMega_C3, nextGrid: gridForWelcome, winAmount: 100.0 } // Каскад 3
         ]
       },
       "cta": {
@@ -651,7 +651,6 @@
 
     /**
      * Анімація "ВРАЩЕНИЯ" (прокрутка стрічок)
-     * Напрямок: Зверху Вниз (стрічка рухається Вгору)
      */
     async function animateSpin(newStateData, durationSeconds) {
       playSound('spin-sound');
@@ -673,37 +672,37 @@
           newSymbolsFragment.appendChild(symbolEl);
         }
         
-        // --- !! ВИПРАВЛЕНО НАПРЯМОК: Логіка інвертована !! ---
-        
-        // 2. Додаємо нові символи НА ПОЧАТОК стрічки
-        strip.prepend(newSymbolsFragment);
-        
-        // 3. Миттєво зсуваємо стрічку ВГОРУ (щоб нові символи були невидимі)
+        // 2. Миттєво переміщуємо стрічку на початок (до старого буфера)
         strip.style.transition = 'none';
-        const spinDistance = (SYMBOL_BUFFER_COUNT + 6) * 100 / 6; // 600%
-        strip.style.transform = `translateY(-${spinDistance}%)`;
+        strip.style.transform = `translateY(0)`;
         
-        // 4. Запускаємо анімацію прокрутки (ВНИЗ)
+        // 3. Додаємо нові символи в кінець стрічки
+        strip.appendChild(newSymbolsFragment);
+        
+        // 4. Запускаємо анімацію прокрутки
         promises.push(new Promise(resolve => {
+          // Затримка для розрахунку браузером
           setTimeout(() => {
+            // (30 + 6) символів / 6 видимих * 100% = 600%
+            const spinDistance = (SYMBOL_BUFFER_COUNT + 6) * 100 / 6; // %
             strip.style.transition = `transform ${durationSeconds}s cubic-bezier(0.65, 0, 0.35, 1)`;
-            // Анімуємо до позиції 0 (нові символи з'являються)
-            strip.style.transform = 'translateY(0)';
+            // Прокручуємо до нових видимих символів
+            strip.style.transform = `translateY(-${spinDistance}%)`;
             
             strip.addEventListener('transitionend', () => {
-              // 5. Очищення: видаляємо старі символи (з КІНЦЯ)
+              // 5. Очищення: видаляємо старі символи (буфер + попередній екран)
               strip.style.transition = 'none';
               const symbolsToRemove = strip.querySelectorAll('.symbol-item');
-              // Видаляємо (30+6) символів з КІНЦЯ
-              for(let i = symbolsToRemove.length - 1; i >= SYMBOL_BUFFER_COUNT + 6; i--) {
+              for(let i = 0; i < SYMBOL_BUFFER_COUNT + 6; i++) {
                  if(symbolsToRemove[i]) {
                     strip.removeChild(symbolsToRemove[i]);
                  }
               }
-              strip.style.transform = `translateY(0)`; // Скидаємо позицію
+              // Скидаємо позицію на 0 (тепер 0 - це новий буфер)
+              strip.style.transform = `translateY(0)`;
               resolve();
             }, { once: true });
-          }, 50 + c * 80); 
+          }, 50 + c * 80); // Невелика затримка для ефекту
         }));
       });
       
@@ -753,8 +752,7 @@
            // Множник (тільки на останньому каскаді MegaWin)
            if (state.nextState === 'cta' && state.cascades.indexOf(cascade) === state.cascades.length - 1) {
              playSound('megawin-sound');
-             // (ВИПРАВЛЕНО) Передаємо суму останнього каскаду
-             await animateMultiplier(cascade.winAmount); 
+             await animateMultiplier();
            }
 
         } else {
@@ -763,20 +761,19 @@
       }
     }
     
-    // Анімація виділення (!! КЛЮЧОВИЙ БАГ-ФІКС !!)
+    // Анімація виділення (ВИПРАВЛЕНО)
     async function animateHighlight(winIndexes) {
       const promises = [];
       for (const [col, row] of winIndexes) {
         const strip = reelElements[col].querySelector('.symbols-strip');
         const symbolEl = strip.children[SYMBOL_BUFFER_COUNT + row]; 
         if (symbolEl) {
-          // !! Повертаємо Promise !!
           promises.push(new Promise(resolve => {
             symbolEl.classList.add('highlight'); // Додаємо клас
             // Чекаємо *завершення* анімації (вона триває 0.4s * 2 = 0.8s)
             setTimeout(() => {
                 symbolEl.classList.remove('highlight'); // Прибираємо клас
-                resolve(); // Вирішуємо Promise
+                resolve();
             }, 800); 
           }));
         }
@@ -838,8 +835,9 @@
                 const fallBy = winningRowsInCol.filter(winRow => winRow > r).length;
                 if (fallBy > 0) {
                     symbolEl.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-                    // % падіння = кількість_рядків * 100% (відносно висоти елемента)
-                    symbolEl.style.transform = `translateY(${fallBy * 100}%)`;
+                    // % падіння = кількість_рядків * (100% / 6_видимих)
+                    const fallDistance = fallBy * (100 / 6) * ( (30+6) / 6 ); // Компенсація висоти стрічки
+                    symbolEl.style.transform = `translateY(${fallDistance}%)`;
                 }
                 survivors.push(symbolEl);
              }
@@ -853,8 +851,8 @@
              
              // Ставимо їх *над* екраном (всередині буфера)
              newEl.style.transition = 'none';
-             // Початкова Y = (індекс + 1) * 100%
-             const startY = (i + 1) * -100; // %
+             // Початкова Y = (індекс + 1) * (100% / 6_видимих) * (компенсація)
+             const startY = (i + 1) * - (100 / 6) * ( (30+6) / 6 ); // %
              newEl.style.transform = `translateY(${startY}%)`;
              
              strip.prepend(newEl); // Додаємо на початок стрічки
@@ -905,15 +903,9 @@
     }
     
     // Анімація множника
-    async function animateMultiplier(lastCascadeWin) {
-      const multiplier = Math.floor(Math.random() * 26) + 25; // 25-50
-      const multiplierValue = `x${multiplier}`;
+    async function animateMultiplier() {
+      const multiplierValue = `x${Math.floor(Math.random() * 26) + 25}`;
       multiplierContainer.innerText = multiplierValue;
-      
-      // (ВИПРАВЛЕНО) Додаємо бонусний виграш
-      const bonusWin = (lastCascadeWin > 0 ? lastCascadeWin : 2.0) * multiplier; // Множимо останній каскад
-      totalWin += bonusWin;
-      tumbleWinAmountEl.innerText = `$${totalWin.toFixed(2)}`;
       
       multiplierContainer.style.animation = 'multiplierFall 0.5s ease-out forwards';
       await sleep(500);
@@ -945,10 +937,9 @@
       isSpinning = true;
       mainBtn.disabled = true;
       
-      // --- !! ВИПРАВЛЕНО: Скидання лічильника видалено !! ---
-      // (Рахунок тепер постійний, як ви просили)
-      // totalWin = 0.0;
-      // tumbleWinAmountEl.innerText = `$${totalWin.toFixed(2)}`;
+      // (Нова функція) Скидання лічильника
+      totalWin = 0.0;
+      tumbleWinAmountEl.innerText = `$${totalWin.toFixed(2)}`;
 
       // 1. Анімуємо "вращение" (Spin)
       const duration = SPIN_DURATIONS[state.spinDuration] || 1.0;
