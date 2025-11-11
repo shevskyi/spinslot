@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Gates of Olympus Playable</title>
+  <!-- Мета-тег для коректної мобільної адаптації -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  
+  <!-- Підключення шрифтів (як у ТЗ) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+
+  <style>
+    /* FILE: css/main.css */
+    /* Базове обнулення та налаштування */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      background: #000;
+      font-family: 'Montserrat', Arial, sans-serif;
+      overflow: hidden; /* Запобігаємо прокрутці */
+    }
+
+    /* #app - контейнер, що центрує ігрове вікно */
+    #app {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh; /* Використовуємо 100vh для повноекранного центрування */
+      width: 100vw;
+      background: #000;
+    }
+
+    /* .playable-container - головне ігрове вікно (9:16) */
+    .playable-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      
+      /* Адаптивне співвідношення сторін 9:16 */
+      max-width: calc(100vh * (9 / 16));
+      max-height: 100vh;
+      aspect-ratio: 9 / 16;
+
+      /* Фон з ТЗ (Basegame_BG.png) */
+      /* Шлях до файлів буде відносним, якщо ми припускаємо, що вони лежать у папці 'assets' поруч */
+      background: #24153e url('assets/png/background/Basegame_BG.png') center center / cover no-repeat;
+      overflow: hidden;
+      box-shadow: 0 0 20px #000;
+    }
+
+    /* .slot-frame - декоративна рамка (як у ТЗ) */
+    .slot-frame {
+      position: absolute;
+      top: 15%;
+      left: 5%;
+      width: 90%;
+      height: 45%;
+      background: url('assets/png/game_props/Reel_Frame.png') center center / 100% 100% no-repeat;
+      z-index: 5;
+      /* Дозволяє клікам "проходити крізь" рамку */
+      pointer-events: none; 
+    }
+
+    /* .slot-area - СІТКА 5x6 для символів (реальна логіка) */
+    .slot-area {
+      position: absolute;
+      top: 15.5%; /* Трохи зміщено для рамки */
+      left: 7%;   /* Трохи зміщено для рамки */
+      width: 86%;
+      height: 44%;
+      
+      /* Використовуємо Grid, як і обговорювали, а не "стрічки" */
+      display: grid;
+      grid-template-columns: repeat(5, 1fr); /* 5 стовпців */
+      grid-template-rows: repeat(6, 1fr);    /* 6 рядків */
+      gap: 2px; /* Маленька відстань між символами */
+      
+      /* Фон барабанів з ТЗ */
+      background: url('assets/png/game_props/Reel_Base.png') center center / cover;
+      padding: 5px;
+      border-radius: 10px;
+    }
+
+    .symbol-item {
+      width: 100%;
+      height: 100%;
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+      /* Початковий стан (невидимий) для анімації "падіння" */
+      opacity: 0;
+      transform: translateY(-100%);
+    }
+
+    /* Клас для анімації "падіння" */
+    .symbol-item.fall-in {
+      animation: symbolFallIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* Клас для анімації "зникнення" */
+    .symbol-item.vanish {
+      animation: vanishPop 0.2s cubic-bezier(.91, .1, .81, .9) forwards;
+    }
+
+    /* Клас для анімації "виділення" */
+    .symbol-item.highlight {
+      animation: highlightPop 0.6s 2; /* Програється двічі */
+    }
+
+    /* Клас для анімації "падіння" (tumble) */
+    .symbol-item.tumble {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* --- Анімації (Keyframes) --- */
+    
+      /* Анімація першого падіння (з "відскоком") */
+    @keyframes symbolFallIn {
+      0% {
+        opacity: 0;
+        transform: translateY(-100%);
+      }
+      80% {
+        opacity: 1;
+        transform: translateY(10px); /* Маленький "відскок" */
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* Анімація "випадіння" (для спіну) */
+    @keyframes symbolFallOut {
+      0% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(100%); /* Випадають вниз */
+      }
+    }
+
+    /* Анімація зникнення (схлопування) */
+    @keyframes vanishPop {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0);
+      }
+    }
+
+    /* Анімація виділення (пульсація) */
+    @keyframes highlightPop {
+      0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 2px #ffd900);
+      }
+      50% {
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 10px #ffd900) brightness(1.5);
+      }
+      100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 2px #ffd900);
+      }
+    }
+
+    /* --- Інтерфейс (Зевс, UI) --- */
+
+    /* Зевс (використовуємо absolute, як і обговорювали) */
+    .zeus-container {
+      position: absolute;
+      top: 20%; /* ВИПРАВЛЕНО: Опущено нижче (було 10%) */
+      right: -10%; /* Частково за межами екрану */
+      width: 50%;
+      z-index: 10;
+      transition: transform 0.5s ease-out;
+    }
+
+    /* Стан "на екрані" для ТЗ Екран 1 */
+    .zeus-container.on-screen {
+      transform: translateX(-120%);
+    }
+
+    .zeus-img {
+      width: 100%;
+      /* ДОДАНО: Анімація левітації (як ви просили) */
+      animation: zeusLevitate 3s ease-in-out infinite;
+    }
+    
+    /* ДОДАНО: Keyframes для левітації Зевса */
+    @keyframes zeusLevitate {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0); }
+    }
+    
+    /* Контейнер для UI (кнопки, текст) */
+    .ui-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 35%; /* Достатньо місця */
+      z-index: 20;
+      
+      /* Використовуємо Flex для гумового компонування */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+      gap: 15px;
+    }
+    
+    .text-title, .text-subtitle {
+      text-align: center;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+    }
+    
+    .text-title {
+      font-size: 2.2em; /* Адаптивний розмір */
+      font-weight: 700;
+      color: #fff06e;
+    }
+    
+    .text-subtitle {
+      font-size: 1.1em;
+    }
+
+    /* Головна кнопка (SPIN / CTA) */
+    .btn-main {
+      width: 80%;
+      max-width: 300px;
+      padding: 18px 0;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.6em;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(180deg, #f55 0%, #ffc400 100%);
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      transition: transform 0.1s ease;
+    }
+
+    .btn-main:active {
+      transform: scale(0.95); /* Ефект натискання */
+    }
+    
+    /* Стан "вимкнено" для кнопки під час анімації */
+    .btn-main:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+  </style>
+</head>
+<body>
+  
+  <!-- #app - кореневий елемент, що центрує все -->
+  <div id="app">
+    <!-- .playable-container - головне ігрове вікно (9:16) -->
+    <div class="playable-container">
+
+      <!-- .slot-frame - декоративна рамка (поверх) -->
+      <div class="slot-frame"></div>
+
+      <!-- .slot-area - ігрова сітка 5x6 -->
+      <div class="slot-area">
+        <!-- Символи будуть згенеровані тут за допомогою JS -->
+      </div>
+      
+      <!-- .zeus-container - Зевс -->
+      <div class="zeus-container">
+        <img id="zeus-img" class="zeus-img" src="assets/png/characters/zeus_idle.png" alt="Zeus">
+      </div>
+      
+      <!-- .ui-container - інтерфейс (текст та кнопки) -->
+      <div class="ui-container">
+        <h1 id="text-title" class="text-title"></h1>
+        <p id="text-subtitle" class="text-subtitle"></p>
+        <button id="btn-main" class="btn-main"></button>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- 
+  ====================================================================
+  JAVASCRIPT
+  Один єдиний блок <script type="module">, що містить ВЕСЬ код.
+  ====================================================================
+  -->
+  <script type="module">
+    // --- Початок коду з 'utils.js' ---
+    const texts = {
+      welcome: "Battle for the Power of Olympus",
+      subtitle: "Натисни SPIN і випробуй удачу",
+      notBad: "Неплохо. Продолжим?",
+      almost: "Близко. Ещё один шаг.",
+      tryAgain: "Попробуй ще раз",
+      megaWin: "MEGA WIN",
+      getBonus: "Забрать бонус"
+    };
+
+    const zeusStates = {
+      neutral: "assets/png/characters/zeus_idle.png",
+      light_joy: "assets/png/characters/zeus_idle_thunder.png", // "Лёгкая радость"
+      powerful: "assets/png/characters/zeus_summon_titan.png", // "Мощная реакция"
+      disappointed: "assets/png/characters/zeus_idle.png", // "Лёгкое разочарование" (використовуємо neutral, як у ТЗ)
+      mega_win: "assets/png/characters/zeus_suuper_charging_wild.png" // "Сильная победная поза"
+    };
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    function getRandomSymbol(symbolList) {
+        return symbolList[Math.floor(Math.random() * symbolList.length)];
+    }
+    // --- Кінець коду з 'utils.js' ---
+
+    // --- Початок коду з 'symbols.js' ---
+    const allSymbols = [
+      { id: "hv1", img: "assets/png/symbols/gool_hv1.png" },
+      { id: "hv2", img: "assets/png/symbols/gool_hv_2.png" },
+      { id: "hv3", img: "assets/png/symbols/gool_hv3.png" },
+      { id: "hv4", img: "assets/png/symbols/gool_hv4.png" },
+      { id: "lv1", img: "assets/png/symbols/gool_lv_1_orange.png" },
+      { id: "lv2", img: "assets/png/symbols/gool_lv_2_purple.png" },
+      { id: "lv3", img: "assets/png/symbols/gool_lv_3_yellow.png" },
+      { id: "lv4", img: "assets/png/symbols/gool_lv_4_green.png" },
+      { id: "lv5", img: "assets/png/symbols/gool_lv_5_blue.png" }
+    ];
+
+    // --- ВИПРАВЛЕНА ЛОГІКА СІТОК ---
+    // Створюємо 5 статичних сіток, які ГАРАНТУЮТЬ виграші, описані в 'cascades'
+    
+    // "Welcome" - просто випадкова сітка
+    const gridForWelcome = [
+      "lv1", "hv1", "lv3", "lv4", "lv2", "hv2",
+      "lv2", "lv4", "lv1", "hv3", "lv1", "lv5",
+      "hv2", "lv5", "lv2", "lv1", "hv4", "lv3",
+      "lv3", "hv3", "lv4", "lv2", "lv5", "hv1",
+      "lv5", "lv1", "hv1", "lv3", "lv4", "lv2"
+    ];
+
+    // "Win1" - 8x "hv1" (корона) на індексах [4, 9, 14, 19, 24, 5, 10, 15]
+    const gridForWin1 = [
+      "lv1", "lv2", "lv3", "lv4", "hv1", "hv1", // 4, 5
+      "lv2", "lv3", "lv4", "hv1", "hv1", "lv1", // 9, 10
+      "lv3", "lv4", "hv1", "hv1", "lv2", "lv2", // 14, 15
+      "lv4", "hv1", "lv1", "lv2", "lv3", "lv3", // 19
+      "hv1", "lv1", "lv2", "lv3", "lv4", "lv4"  // 24
+    ];
+
+    // "Win2" - 8x "hv2" (годинник) на [1, 6, 11, 16, 2, 7, 12, 17]
+    const gridForWin2 = [
+      "lv1", "hv2", "hv2", "lv1", "lv2", "lv3", // 1, 2
+      "lv2", "hv2", "hv2", "lv2", "lv3", "lv4", // 6, 7
+      "lv3", "hv2", "hv2", "lv3", "lv4", "lv5", // 11, 12
+      "lv4", "hv2", "hv2", "lv4", "lv5", "lv1", // 16, 17
+      "lv5", "lv1", "lv2", "lv5", "lv1", "lv2"
+    ];
+
+    // "Fake" - 2x "lv1" (червоний камінь) на [0, 5]
+    const gridForFake = [
+      "lv1", "lv2", "lv3", "lv4", "lv5", "lv1", // 0, 5
+      "lv2", "lv3", "lv4", "lv5", "lv1", "lv2",
+      "lv3", "lv4", "lv5", "lv1", "lv2", "lv3",
+      "lv4", "lv5", "lv1", "lv2", "lv3", "lv4",
+      "lv5", "lv1", "lv2", "lv3", "lv4", "lv5"
+    ];
+
+    // "Mega" - 9x "hv3" (каблучка) на [0, 5, 10, 15, 20, 25, 1, 6, 11]
+    // Примітка: Індекси в JS рахуються з 0.
+    // Стовпці: 0 (0,6,12,18,24), 1 (1,7,13,19,25), 2 (2,8,14,20,26), 3 (3,9,15,21,27), 4 (4,10,16,22,28), 5 (5,11,17,23,29)
+    // Гм, у нас 5 стовпців. Отже, 0 (0-5), 1 (6-11), 2 (12-17), 3 (18-23), 4 (24-29)
+    // Виправляю індекси виграшу для Mega
+    const gridForMega = [
+      "hv3", "hv3", "lv1", "lv1", "lv2", "hv3", // 0, 1, 5
+      "hv3", "hv3", "lv2", "lv2", "lv3", "hv3", // 6, 7, 11
+      "hv3", "hv3", "lv3", "lv3", "lv4", "hv3", // 12, 13, 17
+      "hv3", "hv3", "lv4", "lv4", "lv5", "hv3", // 18, 19, 23
+      "hv3", "hv3", "lv5", "lv5", "lv1", "hv3"  // 24, 25, 29
+    ];
+
+    const gameStates = {
+      "welcome": {
+        nextState: "win1",
+        zeus: zeusStates.neutral, 
+        text: texts.welcome,      
+        subtitle: texts.subtitle,
+        btnText: "SPIN",
+        grid: gridForWelcome,
+        cascades: [] 
+      },
+      "win1": {
+        nextState: "win2",
+        zeus: zeusStates.light_joy,
+        text: texts.notBad,
+        subtitle: "",
+        btnText: "SPIN",
+        grid: gridForWin1,
+        cascades: [
+          { 
+            wins: [4, 9, 14, 19, 24, 5, 10, 15] // 8x hv1
+          }
+        ]
+      },
+      "win2": {
+        nextState: "fake",
+        zeus: zeusStates.powerful,
+        text: texts.almost,
+        subtitle: "",
+        btnText: "SPIN",
+        grid: gridForWin2,
+        cascades: [
+          { 
+            wins: [1, 6, 11, 16, 2, 7, 12, 17] // 8x hv2 (Каскад 1)
+          },
+          { 
+            wins: [3, 8, 13, 18, 4, 9, 14, 19] // 8x (з каскаду 2) - припускаємо, що нові символи так впали
+          }
+        ]
+      },
+      "fake": {
+        nextState: "mega",
+        zeus: zeusStates.disappointed,
+        text: texts.tryAgain,
+        subtitle: "",
+        btnText: "SPIN",
+        grid: gridForFake,
+        cascades: [
+          {
+            wins: [0, 5] // 2x lv1 (не вистачає для виграшу)
+          }
+        ]
+      },
+      "mega": {
+        nextState: "cta", 
+        zeus: zeusStates.mega_win,
+        text: texts.megaWin,
+        subtitle: "",
+        btnText: "SPIN", // Зміниться на CTA в кінці
+        grid: gridForMega,
+        cascades: [
+          { 
+            wins: [0, 6, 12, 18, 24, 1, 7, 13, 19, 25] // 10x hv3 (Каскад 1)
+          },
+          { 
+            wins: [5, 11, 17, 23, 29, 2, 8, 14] // 8x (з каскаду 2)
+          },
+          {
+            wins: [3, 9, 15, 21, 27, 4, 10, 16] // 8x (з каскаду 3)
+          }
+        ]
+      },
+      "cta": {
+        nextState: "welcome", // Можна перезапустити
+        zeus: zeusStates.mega_win,
+        text: texts.megaWin,
+        subtitle: "",
+        btnText: texts.getBonus,
+        grid: null,
+        cascades: []
+      }
+    };
+    // --- Кінець коду з 'symbols.js' ---
+
+    // --- Початок коду з 'screens.js' ---
+    // (НОВА ЛОГІКА, КЕРОВАНА КЛІКАМИ)
+    const container = document.querySelector('.playable-container');
+    const slotArea = document.querySelector('.slot-area');
+    const mainBtn = document.getElementById('btn-main');
+    const title = document.getElementById('text-title');
+    const subtitle = document.getElementById('text-subtitle');
+    const zeusImg = document.getElementById('zeus-img');
+    const zeusContainer = document.querySelector('.zeus-container');
+    
+    // 30 елементів (5 стовпців x 6 рядків)
+    const GRID_SIZE = 30; 
+    let flatGridElements = []; // Масив для зберігання DOM-елементів сітки
+    
+    let currentStateName = "welcome"; // Початковий стан
+    let isSpinning = false; 
+
+    // Створює 30 `div` (.symbol-item) один раз при завантаженні
+    function initGrid() {
+      slotArea.innerHTML = ''; // Очищуємо сітку
+      for (let i = 0; i < GRID_SIZE; i++) {
+        const item = document.createElement('div');
+        item.className = 'symbol-item';
+        item.dataset.index = i; // Додаємо індекс для зручності
+        slotArea.appendChild(item);
+        flatGridElements.push(item);
+      }
+    }
+
+    // Оновлює весь UI (текст, Зевс, кнопка) відповідно до стану
+    function updateUI(stateName) {
+      const state = gameStates[stateName];
+      if (!state) return;
+      
+      title.innerText = state.text;
+      subtitle.innerText = state.subtitle;
+      mainBtn.innerText = state.btnText;
+      zeusImg.src = state.zeus;
+      
+      // Керування Зевсом (на Екрані 1 він "виїжджає")
+      if (stateName === 'welcome') {
+        zeusContainer.classList.add('on-screen');
+      } else if (stateName === 'win1') {
+        zeusContainer.classList.remove('on-screen'); // Ховаємо на час гри
+      }
+    }
+    
+    /**
+     * Анімація "падіння" нової сітки.
+     * @param {string[]} gridData - Масив ID символів (30 елементів)
+     */
+    async function animateInitialFall(gridData) {
+      const promises = [];
+      
+      flatGridElements.forEach((item, index) => {
+        const symbolId = gridData[index];
+        const symbol = allSymbols.find(s => s.id === symbolId);
+        if (symbol) {
+          // Оновлюємо зображення
+          item.style.backgroundImage = `url('${symbol.img}')`;
+          // Скидаємо стилі анімації
+          item.style.animation = 'none';
+          item.style.opacity = '0'; // Переконуємося, що він невидимий
+          
+          // Викликаємо reflow, щоб анімація спрацювала
+          void item.offsetWidth; 
+          
+          const delay = (index % 6) * 50 + (Math.floor(index / 6) * 30);
+          
+          promises.push(new Promise(resolve => {
+            setTimeout(() => {
+              item.style.animation = 'symbolFallIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+              item.addEventListener('animationend', resolve, { once: true });
+            }, delay);
+          }));
+        }
+      });
+      
+      await Promise.all(promises);
+      
+      // Очищуємо стилі анімації після завершення
+      flatGridElements.forEach(item => {
+          item.style.animation = '';
+          item.style.opacity = '1'; // Залишаємо видимим
+      });
+    }
+
+    /**
+     * Анімація виділення виграшних символів
+     * @param {number[]} winIndexes - Індекси виграшних символів
+     */
+    async function animateHighlight(winIndexes) {
+      const promises = [];
+      for (const index of winIndexes) {
+        const item = flatGridElements[index];
+        if (item) {
+          promises.push(new Promise(resolve => {
+            item.classList.add('highlight');
+            item.addEventListener('animationend', () => {
+              item.classList.remove('highlight');
+              resolve();
+            }, { once: true });
+          }));
+        }
+      }
+      await Promise.all(promises);
+    }
+
+    /**
+     * Анімація зникнення виграшних символів
+     * @param {number[]} winIndexes - Індекси виграшних символів
+     */
+    async function animateVanish(winIndexes) {
+      const promises = [];
+      for (const index of winIndexes) {
+        const item = flatGridElements[index];
+        if (item) {
+          promises.push(new Promise(resolve => {
+            item.classList.add('vanish');
+            item.addEventListener('animationend', () => {
+              item.classList.remove('vanish');
+              item.style.opacity = 0; // Ховаємо його
+              resolve();
+            }, { once: true });
+          }));
+        }
+      }
+      await Promise.all(promises);
+    }
+
+    /**
+     * Анімація "випадіння" старої сітки
+     */
+    async function animateGridOut() {
+      const promises = [];
+      flatGridElements.forEach((item, index) => {
+        const delay = (index % 6) * 30; // Невелика затримка для ефекту
+        
+        promises.push(new Promise(resolve => {
+          setTimeout(() => {
+            item.style.animation = 'symbolFallOut 0.3s cubic-bezier(0.76, 0, 0.24, 1) forwards';
+            item.addEventListener('animationend', () => {
+              item.style.animation = ''; // Очищуємо анімацію
+              item.style.opacity = 0; // Залишаємо прихованим
+              resolve();
+            }, { once: true });
+          }, delay);
+        }));
+      });
+      
+      await Promise.all(promises);
+    }
+
+    /**
+     * НОВА ЛОГІЧНА ФУНКЦІЯ ("Мозок")
+     * Розраховує наступний стан сітки після "Tumble".
+     * @param {string[]} currentGridIds - Поточний масив ID символів (30 елементів)
+     * @param {number[]} winIndexes - Індекси символів, що зникли
+     * @returns {string[]} - Новий масив ID символів (30 елементів)
+     */
+    function calculateNewGrid(currentGridIds, winIndexes) {
+      let grid = [...currentGridIds];
+      
+      // 1. "Видаляємо" виграшні символи (ставимо null)
+      for (const index of winIndexes) {
+        grid[index] = null;
+      }
+  
+      // 2. "Tumble" (падіння) для кожного стовпця
+      // У нас 5 стовпців (0, 1, 2, 3, 4) і 6 рядків (0-5)
+      for (let c = 0; c < 5; c++) { // 5 стовпців
+        const column = [];
+        for (let r = 0; r < 6; r++) { // 6 рядків
+          // Індекс = (c + r * 5) - НІ, це не так.
+          // Індекс = (c * 6) + r - ТАК, для сітки 5x6
+          column.push(grid[c * 6 + r]); // Отримуємо поточний стовпець
+        }
+  
+        // 3. Відділяємо "виживанців" від порожніх місць
+        const survivors = column.filter(id => id !== null);
+        
+        // 4. Створюємо нові символи для заповнення порожніх місць
+        const newSymbolsCount = 6 - survivors.length;
+        const newSymbols = Array(newSymbolsCount).fill(null).map(() => getRandomSymbol(allSymbols).id);
+  
+        // 5. Збираємо новий стовпець: нові символи зверху, "виживанці" знизу
+        const newColumn = [...newSymbols, ...survivors];
+  
+        // 6. Повертаємо новий стовпець у сітку
+        for (let r = 0; r < 6; r++) {
+          grid[c * 6 + r] = newColumn[r];
+        }
+      }
+      
+      return grid; // Повертаємо повністю оновлену сітку
+    }
+    
+    /**
+     * ФУНКЦІЯ: Миттєво показує сітку (без анімації).
+     * Використовується для "welcome" екрану.
+     * @param {string[]} gridData - Масив ID символів
+     */
+    function displayStaticGrid(gridData) {
+      flatGridElements.forEach((item, index) => {
+        const symbolId = gridData[index];
+        const symbol = allSymbols.find(s => s.id === symbolId);
+        if (symbol) {
+          item.style.backgroundImage = `url('${symbol.img}')`;
+          item.style.opacity = 1; // Миттєво видимо
+          item.style.transform = 'translateY(0)'; // На місці
+        }
+      });
+    }
+
+    // 'runSpin' тепер запускає ТІЛЬКИ ОДИН стан і зупиняється
+    async function runSpin(stateName) {
+      if (isSpinning) return;
+      
+      const state = gameStates[stateName];
+      if (!state) return;
+
+      isSpinning = true;
+      mainBtn.disabled = true;
+
+      // --- ВИПРАВЛЕНО: ЛОГІКА "СПІНУ" ---
+      // 1. Анімуємо "випадіння" старої сітки
+      await animateGridOut();
+      
+      // 2. Оновлюємо UI (текст, Зевс) під час анімації
+      updateUI(stateName);
+      
+      // Зберігаємо поточний стан сітки у змінній
+      let currentGridData = state.grid;
+
+      // 3. Анімація "впадіння" нової сітки
+      await animateInitialFall(currentGridData);
+      // --- КІНЕЦЬ ЛОГІКИ "СПІНУ" ---
+
+      
+      // 4. Запускаємо цикл каскадів
+      for (const cascade of state.cascades) {
+        // Перевірка на "fake" (менше 8 символів = не виграш)
+        if (stateName === 'fake' && cascade.wins.length < 8) {
+           await sleep(1000); // Просто показуємо і нічого не робимо
+           continue; // Переходимо до наступного каскаду (яких немає)
+        }
+        
+        if (cascade.wins.length > 0) {
+           await sleep(500); 
+           await animateHighlight(cascade.wins);
+           await sleep(200);
+
+          await animateVanish(cascade.wins);
+          await sleep(300); 
+          
+          // Розраховуємо логічно нову сітку
+          currentGridData = calculateNewGrid(currentGridData, cascade.wins);
+          
+          // Анімуємо падіння ВСІЄЇ нової сітки
+          await animateInitialFall(currentGridData);
+        } else {
+          await sleep(1000); // Для стану 'welcome' (без виграшів)
+        }
+      }
+      
+      // 5. Коли всі анімації завершені, перевіряємо, чи є наступний стан CTA
+      if (state.nextState === 'cta') {
+        // Якщо наступний стан - CTA, оновлюємо UI (але ще не стан)
+        updateUI('cta');
+        currentStateName = 'cta'; // Оновлюємо стан тут
+      }
+      
+      isSpinning = false;
+      mainBtn.disabled = false;
+    }
+
+    // --- Запуск гри ---
+    window.onload = () => {
+      initGrid(); 
+      currentStateName = "welcome"; // Встановлюємо початковий стан
+      
+      // 1. Показуємо UI для "welcome"
+      updateUI(currentStateName); 
+      
+      // 2. ВИПРАВЛЕНО: Миттєво показуємо сітку (без анімації)
+      const welcomeGrid = gameStates[currentStateName].grid;
+      displayStaticGrid(welcomeGrid);
+      
+      // 3. Це ГОЛОВНИЙ КЕРУЮЧИЙ цикл, керований кліком
+      mainBtn.onclick = () => {
+        if (isSpinning) return;
+
+        // Визначаємо, який стан буде НАСТУПНИМ
+        const nextStateName = gameStates[currentStateName].nextState;
+        
+        if (nextStateName === 'cta') {
+          // Якщо поточний стан ВЖЕ 'cta' (тобто ми завершили 'mega')
+          if (currentStateName === 'cta') {
+            console.log("CTA Clicked! Redirecting...");
+            // window.location.href = "YOUR_URL_HERE";
+          } else {
+             // Це трапиться, якщо 'mega' завершиться
+             currentStateName = nextStateName;
+             updateUI(currentStateName);
+          }
+        } else if (nextStateName) {
+          // Якщо це звичайний спін, оновлюємо стан і запускаємо анімації
+          currentStateName = nextStateName;
+          runSpin(currentStateName);
+        } else if (currentStateName === 'cta') {
+            // Обробка кліку на CTA кнопку
+            console.log("CTA Clicked! Redirecting...");
+            // window.location.href = "YOUR_URL_HERE";
+        }
+      };
+    };
+    // --- Кінець коду з 'screens.js' ---
+  
+  </script>
+
+</body>
+</html>
