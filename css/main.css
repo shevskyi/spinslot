@@ -1,0 +1,132 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Montserrat', Arial, sans-serif;
+    background: #321d4d;
+  }
+  
+  #app, .playable-container {
+    min-height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Централізований основний playable-бокс */
+  .playable-container {
+    position: relative;
+    width: 100vw;
+    max-width: 420px;
+    aspect-ratio: 9/16;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: url('../assets/png/background/Basegame_BG.png') center center / cover no-repeat, #1a1640;
+  }
+  
+  /* Всі складові шару (по рівнях) */
+  .bg-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(to bottom, #2c234dAA, #2c234d44 70%, #2c234dEE 100%);
+  }
+  
+  .slot-grid {
+    position: absolute;
+    top: 13%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 96%;
+    max-width: 360px;
+    height: 44%;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 6px;
+    background: url('../assets/png/game_props/Reel_Base.png') center / cover no-repeat;
+    border-radius: 18px;
+    padding: 5px;
+  }
+  
+  .symbol-img {
+    width: 98%;
+    height: auto;
+    max-height: 45px;
+    display: block;
+    margin: 0 auto;
+    border-radius: 5px;
+  }
+  
+  /* Зевс завжди поверх символів */
+  .zeus-img {
+    z-index: 4;
+    width: 35%;
+    max-width: 140px;
+    min-width: 90px;
+    position: absolute;
+    left: 50%;
+    top: 51%;
+    transform: translate(-50%, -70%);
+    transition: all 0.5s cubic-bezier(.41,.68,.26,.29);
+    pointer-events: none;
+  }
+  
+  /* Область для тексту і кнопки */
+  .bottom-ui {
+    position: absolute;
+    z-index: 7;
+    bottom: 8%;
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .text-title, .text-subtitle {
+    text-align: center;
+    color: #fff06e;
+    margin: 0;
+    text-shadow: 0 3px 18px #000b;
+  }
+  .text-title {
+    font-weight: bold;
+    font-size: 2.0em;
+    letter-spacing: 2.2px;
+    margin-bottom: 3px;
+  }
+  .text-subtitle {
+    font-size: 1em;
+    color: #fff;
+  }
+  
+  .btn-main, .btn-spin, .btn-bonus {
+    width: 180px;
+    max-width: 81vw;
+    padding: 1.2em 0;
+    margin: 17px auto 0 auto;
+    border: none;
+    border-radius: 14px;
+    font-size: 1.4em;
+    background: linear-gradient(90deg,#ffc400 0%,#f55 100%);
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 12px #0005;
+    transition: 0.18s;
+  }
+  
+  @media only screen and (max-width: 540px) {
+    .playable-container { border-radius: 0; box-shadow: none;}
+    #app {margin: 0;padding: 0;}
+    .zeus-img {max-width: 100px;}
+    .slot-grid {max-width: 99vw;}
+  }
+  
