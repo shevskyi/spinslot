@@ -2,17 +2,14 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <title>Gates of Olympus Playable</title>
-  <!-- Мета-тег для коректної мобільної адаптації -->
+  <title>Gates of Olympus Playable (Full Fix v2)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   
-  <!-- Підключення шрифтів (як у ТЗ) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
 
   <style>
-    /* FILE: css/main.css */
     /* Базове обнулення та налаштування */
     html, body {
       margin: 0;
@@ -21,15 +18,15 @@
       width: 100%;
       background: #000;
       font-family: 'Montserrat', Arial, sans-serif;
-      overflow: hidden; /* Запобігаємо прокрутці */
+      overflow: hidden;
+      color: #fff;
     }
 
-    /* #app - контейнер, що центрує ігрове вікно */
     #app {
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh; /* Використовуємо 100vh для повноекранного центрування */
+      min-height: 100vh;
       width: 100vw;
       background: #000;
     }
@@ -39,181 +36,231 @@
       position: relative;
       width: 100vw;
       height: 100vh;
-      
-      /* Адаптивне співвідношення сторін 9:16 */
       max-width: calc(100vh * (9 / 16));
       max-height: 100vh;
       aspect-ratio: 9 / 16;
-
-      /* Фон з ТЗ (Basegame_BG.png) */
-      /* Шлях до файлів буде відносним, якщо ми припускаємо, що вони лежать у папці 'assets' поруч */
       background: #24153e url('assets/png/background/Basegame_BG.png') center center / cover no-repeat;
       overflow: hidden;
       box-shadow: 0 0 20px #000;
     }
+    
+    /* --- (НОВА ФУНКЦІЯ) UI ВЕРХНЬОЇ ЧАСТИНИ --- */
+    .header-ui {
+      position: absolute;
+      top: 2%;
+      left: 0;
+      width: 100%;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    
+    .tumble-win-counter {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 1.2em;
+      font-weight: 700;
+      text-shadow: 0 2px 4px #000;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    #tumble-win-amount {
+      font-weight: 900;
+      color: #ffeb3b; /* Золотий */
+      margin-left: 10px;
+    }
 
-    /* .slot-frame - декоративна рамка (як у ТЗ) */
+    /* --- АРХІТЕКТУРА (Reel Strips) --- */
+    
+    /* !! ВИПРАВЛЕНО (Рамка) !! */
+    /* .slot-frame - Рамка (Джерело правди) */
     .slot-frame {
       position: absolute;
-      top: 15%;
+      top: 14.5%;
       left: 5%;
       width: 90%;
-      height: 45%;
+      height: 46%;
       background: url('assets/png/game_props/Reel_Frame.png') center center / 100% 100% no-repeat;
-      z-index: 5;
-      /* Дозволяє клікам "проходити крізь" рамку */
+      z-index: 5; /* Поверх .slot-area */
       pointer-events: none; 
+      box-sizing: border-box;
     }
-
-    /* .slot-area - СІТКА 5x6 для символів (реальна логіка) */
+    
+    /* .slot-area - Контент (Всередині рамки) */
     .slot-area {
       position: absolute;
-      top: 15.5%; /* Трохи зміщено для рамки */
-      left: 7%;   /* Трохи зміщено для рамки */
-      width: 86%;
-      height: 44%;
+      top: 14.5%; 
+      left: 5%;   
+      width: 90%;
+      height: 46%;
       
-      /* Використовуємо Grid, як і обговорювали, а не "стрічки" */
-      display: grid;
-      grid-template-columns: repeat(5, 1fr); /* 5 стовпців */
-      grid-template-rows: repeat(6, 1fr);    /* 6 рядків */
-      gap: 2px; /* Маленька відстань між символами */
+      display: flex;
+      justify-content: space-between;
       
-      /* Фон барабанів з ТЗ */
+      /* Фон барабанів (підкладка) */
       background: url('assets/png/game_props/Reel_Base.png') center center / cover;
-      padding: 5px;
+      
+      /* !! ВІДСТУПИ, щоб контент був *всередині* рамки !! */
+      padding: 15px 12px; 
+      
+      box-sizing: border-box;
       border-radius: 10px;
+      z-index: 2; /* Під рамкою */
     }
 
+    /* .reel - Один стовпець. Ключовий елемент: overflow: hidden (щоб маскувати) */
+    .reel {
+      position: relative;
+      width: calc(100% / 5 - 4px); /* 5 стовпців з невеликим відступом */
+      height: 100%;
+      overflow: hidden; /* Маскуємо прокрутку! */
+      border-radius: 5px;
+    }
+
+    /* .symbols-strip - Стрічка символів, яка буде анімуватися */
+    .symbols-strip {
+      /* !! КЛЮЧОВЕ ВИПРАВЛЕННЯ: `position: absolute` + фіксована висота !! */
+      position: absolute; 
+      top: 0;
+      left: 0;
+      width: 100%;
+      /* (30 буфер + 6 видимих) / 6 видимих * 100% = 600% */
+      height: calc(100% * (30 + 6) / 6); 
+      transition: transform 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+    }
+    
+    /* .symbol-item - Один символ на стрічці */
     .symbol-item {
       width: 100%;
-      height: 100%;
+      /* Висота = 1 / 36 (загальна кількість) */
+      height: calc(100% / (30 + 6)); 
       background-size: contain;
       background-position: center;
       background-repeat: no-repeat;
-      /* Початковий стан (невидимий) для анімації "падіння" */
-      opacity: 0;
-      transform: translateY(-100%);
-    }
-
-    /* Клас для анімації "падіння" */
-    .symbol-item.fall-in {
-      animation: symbolFallIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      
+      /* Стан за замовчуванням (для каскадів) */
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                  opacity 0.2s ease;
+      box-sizing: border-box; /* Для рамки */
+      border: 2px solid transparent; /* Для анімації рамки */
     }
 
     /* Клас для анімації "зникнення" */
     .symbol-item.vanish {
-      animation: vanishPop 0.2s cubic-bezier(.91, .1, .81, .9) forwards;
+      /* Анімація "popOut" (зникнення) */
+      animation: popOut 0.3s ease-out forwards;
     }
 
     /* Клас для анімації "виділення" */
     .symbol-item.highlight {
-      animation: highlightPop 0.6s 2; /* Програється двічі */
-    }
-
-    /* Клас для анімації "падіння" (tumble) */
-    .symbol-item.tumble {
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* --- Анімації (Keyframes) --- */
-    
-      /* Анімація першого падіння (з "відскоком") */
-    @keyframes symbolFallIn {
-      0% {
-        opacity: 0;
-        transform: translateY(-100%);
-      }
-      80% {
-        opacity: 1;
-        transform: translateY(10px); /* Маленький "відскок" */
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      /* Анімація "highlightPop" (виділення) */
+      animation: highlightPop 0.4s ease-in-out 2; /* Програти двічі */
     }
     
-    /* Анімація "випадіння" (для спіну) */
-    @keyframes symbolFallOut {
-      0% {
-        opacity: 1;
-        transform: translateY(0);
+    /* --- Кінфрейми (ВИПРАВЛЕНО) --- */
+    
+    /* Анімація "зникнення" (як на відео) */
+    @keyframes popOut {
+      0% { 
+        transform: scale(1.1); 
+        opacity: 1; 
+        filter: brightness(1.5);
       }
-      100% {
-        opacity: 0;
-        transform: translateY(100%); /* Випадають вниз */
-      }
-    }
-
-    /* Анімація зникнення (схлопування) */
-    @keyframes vanishPop {
-      0% {
-        opacity: 1;
-        transform: scale(1);
-      }
-      100% {
-        opacity: 0;
-        transform: scale(0);
+      100% { 
+        transform: scale(0); 
+        opacity: 0; 
+        filter: brightness(0);
       }
     }
 
-    /* Анімація виділення (пульсація) */
+    /* Анімація "виділення" (як на відео) */
     @keyframes highlightPop {
-      0% {
-        transform: scale(1);
-        filter: drop-shadow(0 0 2px #ffd900);
+      0%, 100% { 
+        transform: scale(1); 
+        box-shadow: 0 0 0px 0px transparent;
+        border-color: transparent;
       }
-      50% {
-        transform: scale(1.15);
-        filter: drop-shadow(0 0 10px #ffd900) brightness(1.5);
+      50% { 
+        transform: scale(1.15); 
+        /* !! "Підгорання" (яскрава рамка/тінь) !! */
+        box-shadow: 0 0 20px 8px #ffeb3b, 0 0 10px 4px #fff; 
+        border-color: #fff;
       }
-      100% {
-        transform: scale(1);
-        filter: drop-shadow(0 0 2px #ffd900);
-      }
-    }
-
-    /* --- Інтерфейс (Зевс, UI) --- */
-
-    /* Зевс (використовуємо absolute, як і обговорювали) */
-    .zeus-container {
-      position: absolute;
-      top: 20%; /* ВИПРАВЛЕНО: Опущено нижче (було 10%) */
-      right: -10%; /* Частково за межами екрану */
-      width: 50%;
-      z-index: 10;
-      transition: transform 0.5s ease-out;
-    }
-
-    /* Стан "на екрані" для ТЗ Екран 1 */
-    .zeus-container.on-screen {
-      transform: translateX(-120%);
-    }
-
-    .zeus-img {
-      width: 100%;
-      /* ДОДАНО: Анімація левітації (як ви просили) */
-      animation: zeusLevitate 3s ease-in-out infinite;
     }
     
-    /* ДОДАНО: Keyframes для левітації Зевса */
     @keyframes zeusLevitate {
       0% { transform: translateY(0); }
       50% { transform: translateY(-10px); }
       100% { transform: translateY(0); }
     }
     
-    /* Контейнер для UI (кнопки, текст) */
+    /* --- Інтерфейс (Зевс, UI) --- */
+
+    .zeus-container {
+      position: absolute;
+      top: 30%; 
+      right: -10%; 
+      width: 50%;
+      z-index: 10;
+      transition: transform 0.5s ease-out;
+    }
+
+    .zeus-container.on-screen {
+      transform: translateX(-120%);
+    }
+
+    .zeus-img {
+      width: 100%;
+      animation: zeusLevitate 3s ease-in-out infinite;
+    }
+    
+    #multiplier-container {
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -200%);
+      z-index: 50;
+      width: 100px;
+      height: 100px;
+      background: radial-gradient(circle, rgba(255,223,0,1) 0%, rgba(255,100,0,0) 70%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      font-weight: 700;
+      color: white;
+      text-shadow: 0 0 10px black;
+      opacity: 0;
+    }
+
+    @keyframes multiplierFall {
+      0% { opacity: 1; transform: translate(-50%, -200%); }
+      100% { opacity: 1; transform: translate(-50%, 0); }
+    }
+    @keyframes multiplierLand {
+      0% { transform: translate(-50%, 0) scale(1); }
+      50% { transform: translate(-50%, 0) scale(1.2); }
+      100% { transform: translate(-50%, 0) scale(1); }
+    }
+    @keyframes multiplierFadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    
     .ui-container {
       position: absolute;
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 35%; /* Достатньо місця */
+      height: 35%; 
       z-index: 20;
-      
-      /* Використовуємо Flex для гумового компонування */
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -230,7 +277,7 @@
     }
     
     .text-title {
-      font-size: 2.2em; /* Адаптивний розмір */
+      font-size: 2.2em; 
       font-weight: 700;
       color: #fff06e;
     }
@@ -239,7 +286,6 @@
       font-size: 1.1em;
     }
 
-    /* Головна кнопка (SPIN / CTA) */
     .btn-main {
       width: 80%;
       max-width: 300px;
@@ -256,55 +302,66 @@
     }
 
     .btn-main:active {
-      transform: scale(0.95); /* Ефект натискання */
+      transform: scale(0.95);
     }
     
-    /* Стан "вимкнено" для кнопки під час анімації */
     .btn-main:disabled {
       background: #999;
       cursor: not-allowed;
+    }
+
+    .audio-container {
+      display: none;
     }
 
   </style>
 </head>
 <body>
   
-  <!-- #app - кореневий елемент, що центрує все -->
   <div id="app">
-    <!-- .playable-container - головне ігрове вікно (9:16) -->
     <div class="playable-container">
 
-      <!-- .slot-frame - декоративна рамка (поверх) -->
-      <div class="slot-frame"></div>
+      <!-- (НОВА ФУНКЦІЯ) Лічильник -->
+      <div class="header-ui">
+        <div class="tumble-win-counter">
+          TUMBLE WIN <span id="tumble-win-amount">$0.00</span>
+        </div>
+      </div>
 
-      <!-- .slot-area - ігрова сітка 5x6 -->
+      <!-- .slot-area - Контейнер 5x6 (Flex) -->
       <div class="slot-area">
-        <!-- Символи будуть згенеровані тут за допомогою JS -->
+        <!-- 5 .reel та 5 .symbols-strip будуть згенеровані тут -->
       </div>
       
-      <!-- .zeus-container - Зевс -->
+      <!-- .slot-frame - Декоративна рамка (ПОВЕРХ) -->
+      <div class="slot-frame"></div>
+      
       <div class="zeus-container">
         <img id="zeus-img" class="zeus-img" src="assets/png/characters/zeus_idle.png" alt="Zeus">
       </div>
       
-      <!-- .ui-container - інтерфейс (текст та кнопки) -->
+      <div id="multiplier-container"></div>
+      
       <div class="ui-container">
         <h1 id="text-title" class="text-title"></h1>
         <p id="text-subtitle" class="text-subtitle"></p>
         <button id="btn-main" class="btn-main"></button>
       </div>
       
+      <!-- 
+      <div class="audio-container">
+        <audio id="spin-sound" src="assets/audio/spin.mp3" preload="auto"></audio>
+        <audio id="win-sound" src="assets/audio/win.mp3" preload="auto"></audio>
+        <audio id="cascade-sound" src="assets/audio/cascade.mp3" preload="auto"></audio>
+        <audio id="megawin-sound" src="assets/audio/mega_win.mp3" preload="auto"></audio>
+      </div>
+      -->
+      
     </div>
   </div>
 
-  <!-- 
-  ====================================================================
-  JAVASCRIPT
-  Один єдиний блок <script type="module">, що містить ВЕСЬ код.
-  ====================================================================
-  -->
   <script type="module">
-    // --- Початок коду з 'utils.js' ---
+    // --- Утиліти та Конфігурація ---
     const texts = {
       welcome: "Battle for the Power of Olympus",
       subtitle: "Натисни SPIN і випробуй удачу",
@@ -317,22 +374,21 @@
 
     const zeusStates = {
       neutral: "assets/png/characters/zeus_idle.png",
-      light_joy: "assets/png/characters/zeus_idle_thunder.png", // "Лёгкая радость"
-      powerful: "assets/png/characters/zeus_summon_titan.png", // "Мощная реакция"
-      disappointed: "assets/png/characters/zeus_idle.png", // "Лёгкое разочарование" (використовуємо neutral, як у ТЗ)
-      mega_win: "assets/png/characters/zeus_suuper_charging_wild.png" // "Сильная победная поза"
+      light_joy: "assets/png/characters/zeus_idle_thunder.png",
+      powerful: "assets/png/characters/zeus_summon_titan.png",
+      disappointed: "assets/png/characters/zeus_idle.png",
+      mega_win: "assets/png/characters/zeus_suuper_charging_wild.png"
     };
 
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    }
+    // Тривалість "вращения" (з ТЗ)
+    const SPIN_DURATIONS = {
+        short: 1.0, // 1 секунда
+        medium: 1.5, // 1.5 секунди
+        long: 2.0   // 2 секунди
+    };
     
-    function getRandomSymbol(symbolList) {
-        return symbolList[Math.floor(Math.random() * symbolList.length)];
-    }
-    // --- Кінець коду з 'utils.js' ---
-
-    // --- Початок коду з 'symbols.js' ---
+    const SYMBOL_BUFFER_COUNT = 30; // Кількість дод. символів для буфера прокрутки
+    
     const allSymbols = [
       { id: "hv1", img: "assets/png/symbols/gool_hv1.png" },
       { id: "hv2", img: "assets/png/symbols/gool_hv_2.png" },
@@ -344,59 +400,91 @@
       { id: "lv4", img: "assets/png/symbols/gool_lv_4_green.png" },
       { id: "lv5", img: "assets/png/symbols/gool_lv_5_blue.png" }
     ];
-
-    // --- ВИПРАВЛЕНА ЛОГІКА СІТОК ---
-    // Створюємо 5 статичних сіток, які ГАРАНТУЮТЬ виграші, описані в 'cascades'
     
-    // "Welcome" - просто випадкова сітка
+    // --- СЦЕНАРІЙ (відповідає ТЗ) ---
+    // (Ця логіка з v3 була коректною і залишається)
+
+    // Екран 1: Welcome
     const gridForWelcome = [
-      "lv1", "hv1", "lv3", "lv4", "lv2", "hv2",
-      "lv2", "lv4", "lv1", "hv3", "lv1", "lv5",
-      "hv2", "lv5", "lv2", "lv1", "hv4", "lv3",
-      "lv3", "hv3", "lv4", "lv2", "lv5", "hv1",
-      "lv5", "lv1", "hv1", "lv3", "lv4", "lv2"
+      ["lv1", "lv2", "hv2", "lv3", "lv5", "hv1"], // Col 0
+      ["hv1", "lv4", "lv5", "hv3", "lv1", "lv1"], // Col 1
+      ["lv3", "lv1", "lv2", "lv1", "hv4", "hv1"], // Col 2
+      ["lv4", "hv3", "lv4", "lv2", "lv5", "hv3"], // Col 3
+      ["lv2", "lv5", "hv1", "lv3", "lv4", "lv2"]  // Col 4
     ];
 
-    // "Win1" - 8x "hv1" (корона) на індексах [4, 9, 14, 19, 24, 5, 10, 15]
+    // Екран 2: Win 1 (1 каскад)
     const gridForWin1 = [
-      "lv1", "lv2", "lv3", "lv4", "hv1", "hv1", // 4, 5
-      "lv2", "lv3", "lv4", "hv1", "hv1", "lv1", // 9, 10
-      "lv3", "lv4", "hv1", "hv1", "lv2", "lv2", // 14, 15
-      "lv4", "hv1", "lv1", "lv2", "lv3", "lv3", // 19
-      "hv1", "lv1", "lv2", "lv3", "lv4", "lv4"  // 24
+      ["lv1", "lv2", "hv1", "hv1", "hv1", "lv1"], // Col 0
+      ["lv2", "lv3", "hv1", "hv1", "hv1", "lv2"], // Col 1
+      ["lv3", "lv4", "lv5", "lv1", "lv2", "lv3"], // Col 2
+      ["lv4", "lv5", "lv1", "lv2", "lv3", "lv4"], // Col 3
+      ["lv5", "lv1", "lv2", "lv3", "lv4", "lv5"]  // Col 4
+    ];
+    const winsForWin1 = [ [0,2], [0,3], [0,4], [1,2], [1,3], [1,4] ]; // 6x hv1
+    const gridForWin1_C2 = [ // Сітка ПІСЛЯ каскаду
+      ["lv1", "lv2", "lv3", "lv4", "lv5", "lv1"],
+      ["lv2", "lv3", "lv4", "lv5", "lv1", "lv2"],
+      ["lv3", "lv4", "lv5", "lv1", "lv2", "lv3"],
+      ["lv4", "lv5", "lv1", "lv2", "lv3", "lv4"],
+      ["lv5", "lv1", "lv2", "lv3", "lv4", "lv5"]
     ];
 
-    // "Win2" - 8x "hv2" (годинник) на [1, 6, 11, 16, 2, 7, 12, 17]
+    // Екран 3: Win 2 (2 каскади)
     const gridForWin2 = [
-      "lv1", "hv2", "hv2", "lv1", "lv2", "lv3", // 1, 2
-      "lv2", "hv2", "hv2", "lv2", "lv3", "lv4", // 6, 7
-      "lv3", "hv2", "hv2", "lv3", "lv4", "lv5", // 11, 12
-      "lv4", "hv2", "hv2", "lv4", "lv5", "lv1", // 16, 17
-      "lv5", "lv1", "lv2", "lv5", "lv1", "lv2"
+      ["lv1", "hv2", "hv2", "lv1", "lv2", "lv3"], // Col 0
+      ["lv2", "hv2", "hv2", "lv2", "lv3", "lv4"], // Col 1
+      ["lv3", "hv2", "hv2", "lv3", "lv4", "lv5"], // Col 2
+      ["lv4", "hv2", "hv2", "lv4", "lv5", "lv1"], // Col 3
+      ["lv5", "lv1", "lv2", "lv5", "lv1", "lv2"]  // Col 4
     ];
+    const winsForWin2_C1 = [ [0,1], [0,2], [1,1], [1,2], [2,1], [2,2], [3,1], [3,2] ]; // 8x hv2
+    const gridForWin2_C2_Data = [ // Сітка ПІСЛЯ каскаду 1
+      ["hv4", "hv4", "lv1", "lv1", "lv2", "lv3"], // Нові
+      ["hv4", "hv4", "lv2", "lv2", "lv3", "lv4"], // Нові
+      ["lv1", "lv3", "lv3", "lv4", "lv5", "lv1"], // "Виживший" [0,0] -> [0,2] і тд
+      ["lv2", "lv4", "lv4", "lv5", "lv1", "lv2"], // "Виживший" [1,0] -> [1,2] і тд
+      ["lv3", "lv5", "lv5", "lv1", "lv2", "lv3"]  // "Виживший" [2,0] -> [2,2] і тд
+    ];
+    const winsForWin2_C2 = [ [0,0], [0,1], [1,0], [1,1] ]; // 4x hv4
 
-    // "Fake" - 2x "lv1" (червоний камінь) на [0, 5]
+    // Екран 4: Fake
     const gridForFake = [
-      "lv1", "lv2", "lv3", "lv4", "lv5", "lv1", // 0, 5
-      "lv2", "lv3", "lv4", "lv5", "lv1", "lv2",
-      "lv3", "lv4", "lv5", "lv1", "lv2", "lv3",
-      "lv4", "lv5", "lv1", "lv2", "lv3", "lv4",
-      "lv5", "lv1", "lv2", "lv3", "lv4", "lv5"
+      ["lv1", "lv2", "lv3", "lv4", "lv5", "lv1"], // [0][0], [0][5]
+      ["lv2", "lv3", "lv4", "lv5", "lv1", "lv2"], 
+      ["lv3", "lv4", "lv5", "lv1", "lv2", "lv3"], 
+      ["lv4", "lv5", "lv1", "lv2", "lv3", "lv4"], 
+      ["lv5", "lv1", "lv2", "lv3", "lv4", "lv5"]  
     ];
+    const winsForFake = [ [0,0], [0,5] ]; // 2x lv1
 
-    // "Mega" - 9x "hv3" (каблучка) на [0, 5, 10, 15, 20, 25, 1, 6, 11]
-    // Примітка: Індекси в JS рахуються з 0.
-    // Стовпці: 0 (0,6,12,18,24), 1 (1,7,13,19,25), 2 (2,8,14,20,26), 3 (3,9,15,21,27), 4 (4,10,16,22,28), 5 (5,11,17,23,29)
-    // Гм, у нас 5 стовпців. Отже, 0 (0-5), 1 (6-11), 2 (12-17), 3 (18-23), 4 (24-29)
-    // Виправляю індекси виграшу для Mega
+    // Екран 5: Mega Win (3 каскади)
     const gridForMega = [
-      "hv3", "hv3", "lv1", "lv1", "lv2", "hv3", // 0, 1, 5
-      "hv3", "hv3", "lv2", "lv2", "lv3", "hv3", // 6, 7, 11
-      "hv3", "hv3", "lv3", "lv3", "lv4", "hv3", // 12, 13, 17
-      "hv3", "hv3", "lv4", "lv4", "lv5", "hv3", // 18, 19, 23
-      "hv3", "hv3", "lv5", "lv5", "lv1", "hv3"  // 24, 25, 29
+      ["hv3", "hv3", "lv1", "lv1", "lv2", "lv3"], // Col 0
+      ["hv3", "hv3", "lv2", "lv2", "lv3", "lv4"], // Col 1
+      ["hv3", "hv3", "lv3", "lv3", "lv4", "lv5"], // Col 2
+      ["hv3", "hv3", "lv4", "lv4", "lv5", "lv1"], // Col 3
+      ["hv3", "hv3", "lv5", "lv5", "lv1", "lv2"]  // Col 4
     ];
+    const winsForMega_C1 = [ [0,0], [0,1], [1,0], [1,1], [2,0], [2,1], [3,0], [3,1], [4,0], [4,1] ];
+    const gridForMega_C2_Data = [ // Сітка ПІСЛЯ каскаду 1
+      ["hv1", "hv1", "lv1", "lv1", "lv2", "lv3"], // Нові
+      ["hv1", "hv1", "lv2", "lv2", "lv3", "lv4"], // Нові
+      ["lv1", "lv2", "lv3", "lv3", "lv4", "lv5"], // "Вижили"
+      ["lv2", "lv3", "lv4", "lv4", "lv5", "lv1"], // "Вижили"
+      ["lv3", "lv4", "lv5", "lv5", "lv1", "lv2"]  // "Вижили"
+    ];
+    const winsForMega_C2 = [ [0,0], [0,1], [1,0], [1,1] ]; // 4x hv1
+    const gridForMega_C3_Data = [ // Сітка ПІСЛЯ каскаду 2
+      ["hv4", "hv4", "lv1", "lv1", "lv2", "lv3"], // Нові
+      ["hv4", "hv4", "lv2", "lv2", "lv3", "lv4"], // Нові
+      ["lv1", "lv1", "lv3", "lv3", "lv4", "lv5"], // "Вижили"
+      ["lv1", "lv2", "lv4", "lv4", "lv5", "lv1"], // "Вижили"
+      ["lv2", "lv3", "lv5", "lv5", "lv1", "lv2"]  // "Вижили"
+    ];
+    const winsForMega_C3 = [ [0,0], [0,1], [1,0], [1,1] ]; // 4x hv4
 
+    // Головний об'єкт станів гри (gameStates)
     const gameStates = {
       "welcome": {
         nextState: "win1",
@@ -405,228 +493,217 @@
         subtitle: texts.subtitle,
         btnText: "SPIN",
         grid: gridForWelcome,
+        spinDuration: 'short',
         cascades: [] 
       },
       "win1": {
         nextState: "win2",
         zeus: zeusStates.light_joy,
         text: texts.notBad,
-        subtitle: "",
         btnText: "SPIN",
         grid: gridForWin1,
+        spinDuration: 'short',
+        winAmount: 3.0, // (ВИПРАВЛЕНО) Сума зменшена
         cascades: [
-          { 
-            wins: [4, 9, 14, 19, 24, 5, 10, 15] // 8x hv1
-          }
+          { wins: winsForWin1, nextGrid: gridForWin1_C2, winAmount: 1.5 } // 1 каскад
         ]
       },
       "win2": {
         nextState: "fake",
         zeus: zeusStates.powerful,
         text: texts.almost,
-        subtitle: "",
         btnText: "SPIN",
         grid: gridForWin2,
+        spinDuration: 'medium',
+        winAmount: 5.0, // (ВИПРАВЛЕНО) Сума зменшена
         cascades: [
-          { 
-            wins: [1, 6, 11, 16, 2, 7, 12, 17] // 8x hv2 (Каскад 1)
-          },
-          { 
-            wins: [3, 8, 13, 18, 4, 9, 14, 19] // 8x (з каскаду 2) - припускаємо, що нові символи так впали
-          }
+          { wins: winsForWin2_C1, nextGrid: gridForWin2_C2_Data, winAmount: 2.5 }, // Каскад 1
+          { wins: winsForWin2_C2, nextGrid: gridForFake, winAmount: 2.5 }       // Каскад 2
         ]
       },
       "fake": {
         nextState: "mega",
         zeus: zeusStates.disappointed,
         text: texts.tryAgain,
-        subtitle: "",
         btnText: "SPIN",
         grid: gridForFake,
+        spinDuration: 'long',
+        winAmount: 0.2, // (ВИПРАВЛЕНО) Сума зменшена
         cascades: [
-          {
-            wins: [0, 5] // 2x lv1 (не вистачає для виграшу)
-          }
+          { wins: winsForFake, nextGrid: null, winAmount: 0 } // Недостатньо для виграшу
         ]
       },
       "mega": {
         nextState: "cta", 
         zeus: zeusStates.mega_win,
         text: texts.megaWin,
-        subtitle: "",
-        btnText: "SPIN", // Зміниться на CTA в кінці
+        btnText: "SPIN",
         grid: gridForMega,
+        spinDuration: 'long',
+        winAmount: 10.0, // (ВИПРАВЛЕНО) Сума зменшена
         cascades: [
-          { 
-            wins: [0, 6, 12, 18, 24, 1, 7, 13, 19, 25] // 10x hv3 (Каскад 1)
-          },
-          { 
-            wins: [5, 11, 17, 23, 29, 2, 8, 14] // 8x (з каскаду 2)
-          },
-          {
-            wins: [3, 9, 15, 21, 27, 4, 10, 16] // 8x (з каскаду 3)
-          }
+          { wins: winsForMega_C1, nextGrid: gridForMega_C2_Data, winAmount: 5.0 }, // Каскад 1
+          { wins: winsForMega_C2, nextGrid: gridForMega_C3_Data, winAmount: 5.0 }, // Каскад 2
+          { wins: winsForMega_C3, nextGrid: gridForWelcome, winAmount: 10.0 } // Каскад 3
         ]
       },
       "cta": {
-        nextState: "welcome", // Можна перезапустити
+        nextState: "welcome", 
         zeus: zeusStates.mega_win,
         text: texts.megaWin,
-        subtitle: "",
         btnText: texts.getBonus,
-        grid: null,
-        cascades: []
+        grid: null // Сітка не потрібна
       }
     };
-    // --- Кінець коду з 'symbols.js' ---
 
-    // --- Початок коду з 'screens.js' ---
-    // (НОВА ЛОГІКА, КЕРОВАНА КЛІКАМИ)
-    const container = document.querySelector('.playable-container');
+    // --- DOM Елементи та Стан ---
     const slotArea = document.querySelector('.slot-area');
     const mainBtn = document.getElementById('btn-main');
     const title = document.getElementById('text-title');
     const subtitle = document.getElementById('text-subtitle');
     const zeusImg = document.getElementById('zeus-img');
     const zeusContainer = document.querySelector('.zeus-container');
+    const multiplierContainer = document.getElementById('multiplier-container');
     
-    // 30 елементів (5 стовпців x 6 рядків)
-    const GRID_SIZE = 30; 
-    let flatGridElements = []; // Масив для зберігання DOM-елементів сітки
+    // (Нова функція) Лічильник
+    const tumbleWinAmountEl = document.getElementById('tumble-win-amount');
+    let totalWin = 0.0;
     
-    let currentStateName = "welcome"; // Початковий стан
+    let reelElements = []; // Масив DOM-елементів [.reel]
+    let currentStateName = "welcome";
     let isSpinning = false; 
 
-    // Створює 30 `div` (.symbol-item) один раз при завантаженні
-    function initGrid() {
-      slotArea.innerHTML = ''; // Очищуємо сітку
-      for (let i = 0; i < GRID_SIZE; i++) {
-        const item = document.createElement('div');
-        item.className = 'symbol-item';
-        item.dataset.index = i; // Додаємо індекс для зручності
-        slotArea.appendChild(item);
-        flatGridElements.push(item);
+    // --- Утиліти ---
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    function getRandomSymbol() {
+        return allSymbols[Math.floor(Math.random() * allSymbols.length)];
+    }
+    
+    function playSound(id) {
+      // (Закоментовано)
+    }
+    
+    /**
+     * Створює 1 символ (DOM-елемент)
+     */
+    function createSymbolElement(symbolId) {
+      const symbol = allSymbols.find(s => s.id === symbolId) || getRandomSymbol();
+      const item = document.createElement('div');
+      item.className = 'symbol-item';
+      item.style.backgroundImage = `url('${symbol.img}')`;
+      item.dataset.symbolId = symbol.id;
+      return item;
+    }
+
+    /**
+     * Генерує початкові стовпці (reels) та стрічки (strips)
+     */
+    function initGrid(gridData) {
+      slotArea.innerHTML = '';
+      reelElements = [];
+      
+      for (let c = 0; c < 5; c++) {
+        const reel = document.createElement('div');
+        reel.className = 'reel';
+        
+        const strip = document.createElement('div');
+        strip.className = 'symbols-strip';
+        
+        // 1. Додаємо буфер прокрутки (зверху)
+        for (let i = 0; i < SYMBOL_BUFFER_COUNT; i++) {
+          strip.appendChild(createSymbolElement(getRandomSymbol().id));
+        }
+        
+        // 2. Додаємо видимі символи
+        const columnData = gridData[c];
+        for (let r = 0; r < 6; r++) {
+          const symbolEl = createSymbolElement(columnData[r]);
+          symbolEl.dataset.col = c;
+          symbolEl.dataset.row = r;
+          strip.appendChild(symbolEl);
+        }
+        
+        reel.appendChild(strip);
+        slotArea.appendChild(reel);
+        reelElements.push(reel);
       }
     }
 
-    // Оновлює весь UI (текст, Зевс, кнопка) відповідно до стану
+    // Оновлює UI (текст, Зевс, кнопка)
     function updateUI(stateName) {
       const state = gameStates[stateName];
       if (!state) return;
       
       title.innerText = state.text;
-      subtitle.innerText = state.subtitle;
+      subtitle.innerText = state.subtitle || ''; // Обробка null
       mainBtn.innerText = state.btnText;
       zeusImg.src = state.zeus;
       
-      // Керування Зевсом (на Екрані 1 він "виїжджає")
       if (stateName === 'welcome') {
         zeusContainer.classList.add('on-screen');
       } else if (stateName === 'win1') {
-        zeusContainer.classList.remove('on-screen'); // Ховаємо на час гри
+        zeusContainer.classList.remove('on-screen');
       }
-    }
-    
-    /**
-     * Анімація "падіння" нової сітки.
-     * @param {string[]} gridData - Масив ID символів (30 елементів)
-     */
-    async function animateInitialFall(gridData) {
-      const promises = [];
-      
-      flatGridElements.forEach((item, index) => {
-        const symbolId = gridData[index];
-        const symbol = allSymbols.find(s => s.id === symbolId);
-        if (symbol) {
-          // Оновлюємо зображення
-          item.style.backgroundImage = `url('${symbol.img}')`;
-          // Скидаємо стилі анімації
-          item.style.animation = 'none';
-          item.style.opacity = '0'; // Переконуємося, що він невидимий
-          
-          // Викликаємо reflow, щоб анімація спрацювала
-          void item.offsetWidth; 
-          
-          const delay = (index % 6) * 50 + (Math.floor(index / 6) * 30);
-          
-          promises.push(new Promise(resolve => {
-            setTimeout(() => {
-              item.style.animation = 'symbolFallIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
-              item.addEventListener('animationend', resolve, { once: true });
-            }, delay);
-          }));
-        }
-      });
-      
-      await Promise.all(promises);
-      
-      // Очищуємо стилі анімації після завершення
-      flatGridElements.forEach(item => {
-          item.style.animation = '';
-          item.style.opacity = '1'; // Залишаємо видимим
-      });
     }
 
     /**
-     * Анімація виділення виграшних символів
-     * @param {number[]} winIndexes - Індекси виграшних символів
+     * Анімація "ВРАЩЕНИЯ" (прокрутка стрічок)
+     * Напрямок: Зверху Вниз (стрічка рухається Вгору)
      */
-    async function animateHighlight(winIndexes) {
+    async function animateSpin(newStateData, durationSeconds) {
+      playSound('spin-sound');
       const promises = [];
-      for (const index of winIndexes) {
-        const item = flatGridElements[index];
-        if (item) {
-          promises.push(new Promise(resolve => {
-            item.classList.add('highlight');
-            item.addEventListener('animationend', () => {
-              item.classList.remove('highlight');
-              resolve();
-            }, { once: true });
-          }));
-        }
-      }
-      await Promise.all(promises);
-    }
-
-    /**
-     * Анімація зникнення виграшних символів
-     * @param {number[]} winIndexes - Індекси виграшних символів
-     */
-    async function animateVanish(winIndexes) {
-      const promises = [];
-      for (const index of winIndexes) {
-        const item = flatGridElements[index];
-        if (item) {
-          promises.push(new Promise(resolve => {
-            item.classList.add('vanish');
-            item.addEventListener('animationend', () => {
-              item.classList.remove('vanish');
-              item.style.opacity = 0; // Ховаємо його
-              resolve();
-            }, { once: true });
-          }));
-        }
-      }
-      await Promise.all(promises);
-    }
-
-    /**
-     * Анімація "випадіння" старої сітки
-     */
-    async function animateGridOut() {
-      const promises = [];
-      flatGridElements.forEach((item, index) => {
-        const delay = (index % 6) * 30; // Невелика затримка для ефекту
+      
+      reelElements.forEach((reel, c) => {
+        const strip = reel.querySelector('.symbols-strip');
+        const newColumnData = newStateData.grid[c];
         
+        // 1. Створюємо нові символи для наступного спіну
+        const newSymbolsFragment = document.createDocumentFragment();
+        for (let i = 0; i < SYMBOL_BUFFER_COUNT; i++) {
+          newSymbolsFragment.appendChild(createSymbolElement(getRandomSymbol().id));
+        }
+        for (let r = 0; r < 6; r++) {
+          const symbolEl = createSymbolElement(newColumnData[r]);
+          symbolEl.dataset.col = c;
+          symbolEl.dataset.row = r;
+          newSymbolsFragment.appendChild(symbolEl);
+        }
+        
+        // --- !! ВИПРАВЛЕНО НАПРЯМОК: Логіка інвертована !! ---
+        
+        // 2. Додаємо нові символи НА ПОЧАТОК стрічки
+        strip.prepend(newSymbolsFragment);
+        
+        // 3. Миттєво зсуваємо стрічку ВГОРУ (щоб нові символи були невидимі)
+        strip.style.transition = 'none';
+        const spinDistance = (SYMBOL_BUFFER_COUNT + 6) * 100 / 6; // 600%
+        strip.style.transform = `translateY(-${spinDistance}%)`;
+        
+        // 4. Запускаємо анімацію прокрутки (ВНИЗ)
         promises.push(new Promise(resolve => {
           setTimeout(() => {
-            item.style.animation = 'symbolFallOut 0.3s cubic-bezier(0.76, 0, 0.24, 1) forwards';
-            item.addEventListener('animationend', () => {
-              item.style.animation = ''; // Очищуємо анімацію
-              item.style.opacity = 0; // Залишаємо прихованим
+            strip.style.transition = `transform ${durationSeconds}s cubic-bezier(0.65, 0, 0.35, 1)`;
+            // Анімуємо до позиції 0 (нові символи з'являються)
+            strip.style.transform = 'translateY(0)';
+            
+            strip.addEventListener('transitionend', () => {
+              // 5. Очищення: видаляємо старі символи (з КІНЦЯ)
+              strip.style.transition = 'none';
+              const symbolsToRemove = strip.querySelectorAll('.symbol-item');
+              // Видаляємо (30+6) символів з КІНЦЯ
+              for(let i = symbolsToRemove.length - 1; i >= SYMBOL_BUFFER_COUNT + 6; i--) {
+                 if(symbolsToRemove[i]) {
+                    strip.removeChild(symbolsToRemove[i]);
+                 }
+              }
+              strip.style.transform = `translateY(0)`; // Скидаємо позицію
               resolve();
             }, { once: true });
-          }, delay);
+          }, 50 + c * 80); 
         }));
       });
       
@@ -634,122 +711,259 @@
     }
 
     /**
-     * НОВА ЛОГІЧНА ФУНКЦІЯ ("Мозок")
-     * Розраховує наступний стан сітки після "Tumble".
-     * @param {string[]} currentGridIds - Поточний масив ID символів (30 елементів)
-     * @param {number[]} winIndexes - Індекси символів, що зникли
-     * @returns {string[]} - Новий масив ID символів (30 елементів)
+     * Анімація "КАСКАДУ" (Tumble)
      */
-    function calculateNewGrid(currentGridIds, winIndexes) {
-      let grid = [...currentGridIds];
+    async function runCascade(state) {
       
-      // 1. "Видаляємо" виграшні символи (ставимо null)
-      for (const index of winIndexes) {
-        grid[index] = null;
-      }
-  
-      // 2. "Tumble" (падіння) для кожного стовпця
-      // У нас 5 стовпців (0, 1, 2, 3, 4) і 6 рядків (0-5)
-      for (let c = 0; c < 5; c++) { // 5 стовпців
-        const column = [];
-        for (let r = 0; r < 6; r++) { // 6 рядків
-          // Індекс = (c + r * 5) - НІ, це не так.
-          // Індекс = (c * 6) + r - ТАК, для сітки 5x6
-          column.push(grid[c * 6 + r]); // Отримуємо поточний стовпець
-        }
-  
-        // 3. Відділяємо "виживанців" від порожніх місць
-        const survivors = column.filter(id => id !== null);
-        
-        // 4. Створюємо нові символи для заповнення порожніх місць
-        const newSymbolsCount = 6 - survivors.length;
-        const newSymbols = Array(newSymbolsCount).fill(null).map(() => getRandomSymbol(allSymbols).id);
-  
-        // 5. Збираємо новий стовпець: нові символи зверху, "виживанці" знизу
-        const newColumn = [...newSymbols, ...survivors];
-  
-        // 6. Повертаємо новий стовпець у сітку
-        for (let r = 0; r < 6; r++) {
-          grid[c * 6 + r] = newColumn[r];
-        }
+      // (Нова функція) Додаємо початковий виграш (якщо він є)
+      if (state.winAmount && state.winAmount > 0) {
+          totalWin += state.winAmount;
+          tumbleWinAmountEl.innerText = `$${totalWin.toFixed(2)}`;
       }
       
-      return grid; // Повертаємо повністю оновлену сітку
-    }
-    
-    /**
-     * ФУНКЦІЯ: Миттєво показує сітку (без анімації).
-     * Використовується для "welcome" екрану.
-     * @param {string[]} gridData - Масив ID символів
-     */
-    function displayStaticGrid(gridData) {
-      flatGridElements.forEach((item, index) => {
-        const symbolId = gridData[index];
-        const symbol = allSymbols.find(s => s.id === symbolId);
-        if (symbol) {
-          item.style.backgroundImage = `url('${symbol.img}')`;
-          item.style.opacity = 1; // Миттєво видимо
-          item.style.transform = 'translateY(0)'; // На місці
-        }
-      });
-    }
-
-    // 'runSpin' тепер запускає ТІЛЬКИ ОДИН стан і зупиняється
-    async function runSpin(stateName) {
-      if (isSpinning) return;
-      
-      const state = gameStates[stateName];
-      if (!state) return;
-
-      isSpinning = true;
-      mainBtn.disabled = true;
-
-      // --- ВИПРАВЛЕНО: ЛОГІКА "СПІНУ" ---
-      // 1. Анімуємо "випадіння" старої сітки
-      await animateGridOut();
-      
-      // 2. Оновлюємо UI (текст, Зевс) під час анімації
-      updateUI(stateName);
-      
-      // Зберігаємо поточний стан сітки у змінній
-      let currentGridData = state.grid;
-
-      // 3. Анімація "впадіння" нової сітки
-      await animateInitialFall(currentGridData);
-      // --- КІНЕЦЬ ЛОГІКИ "СПІНУ" ---
-
-      
-      // 4. Запускаємо цикл каскадів
       for (const cascade of state.cascades) {
-        // Перевірка на "fake" (менше 8 символів = не виграш)
-        if (stateName === 'fake' && cascade.wins.length < 8) {
-           await sleep(1000); // Просто показуємо і нічого не робимо
-           continue; // Переходимо до наступного каскаду (яких немає)
+        
+        // "Fake" (менше 8 символів - умова з ТЗ)
+        if (state.spinDuration === 'long' && cascade.wins.length < 8) { 
+           await sleep(1000); 
+           continue; 
         }
         
         if (cascade.wins.length > 0) {
            await sleep(500); 
+           
+           // (Нова функція) Додаємо виграш з каскаду
+           if (cascade.winAmount && cascade.winAmount > 0) {
+               totalWin += cascade.winAmount;
+               tumbleWinAmountEl.innerText = `$${totalWin.toFixed(2)}`;
+           }
+           
+           // 1. Анімація виділення (ВИПРАВЛЕНО)
+           playSound('win-sound');
            await animateHighlight(cascade.wins);
-           await sleep(200);
+           
+           // 2. Анімація зникнення
+           playSound('cascade-sound');
+           await animateVanish(cascade.wins);
+           await sleep(300); // Чекаємо, поки зникнуть
+           
+           // 3. Анімація падіння (Tumble Down)
+           await animateTumbleDown(cascade.wins, cascade.nextGrid); 
+           
+           // Множник (тільки на останньому каскаді MegaWin)
+           if (state.nextState === 'cta' && state.cascades.indexOf(cascade) === state.cascades.length - 1) {
+             playSound('megawin-sound');
+             // (ВИПРАВЛЕНО) Передаємо суму останнього каскаду
+             await animateMultiplier(cascade.winAmount); 
+           }
 
-          await animateVanish(cascade.wins);
-          await sleep(300); 
-          
-          // Розраховуємо логічно нову сітку
-          currentGridData = calculateNewGrid(currentGridData, cascade.wins);
-          
-          // Анімуємо падіння ВСІЄЇ нової сітки
-          await animateInitialFall(currentGridData);
         } else {
-          await sleep(1000); // Для стану 'welcome' (без виграшів)
+          await sleep(1000); 
         }
       }
+    }
+    
+    // Анімація виділення (!! КЛЮЧОВИЙ БАГ-ФІКС !!)
+    async function animateHighlight(winIndexes) {
+      const promises = [];
+      for (const [col, row] of winIndexes) {
+        const strip = reelElements[col].querySelector('.symbols-strip');
+        const symbolEl = strip.children[SYMBOL_BUFFER_COUNT + row]; 
+        if (symbolEl) {
+          // !! Повертаємо Promise !!
+          promises.push(new Promise(resolve => {
+            symbolEl.classList.add('highlight'); // Додаємо клас
+            // Чекаємо *завершення* анімації (вона триває 0.4s * 2 = 0.8s)
+            setTimeout(() => {
+                symbolEl.classList.remove('highlight'); // Прибираємо клас
+                resolve(); // Вирішуємо Promise
+            }, 800); 
+          }));
+        }
+      }
+      await Promise.all(promises); // Чекаємо на всі анімації
+    }
+    
+    // Анімація зникнення
+    async function animateVanish(winIndexes) {
+      const promises = [];
+      for (const [col, row] of winIndexes) {
+        const strip = reelElements[col].querySelector('.symbols-strip');
+        const symbolEl = strip.children[SYMBOL_BUFFER_COUNT + row];
+        if (symbolEl) {
+          promises.push(new Promise(resolve => {
+            symbolEl.classList.add('vanish'); // Додаємо клас
+            symbolEl.addEventListener('animationend', resolve, { once: true });
+          }));
+        }
+      }
+      await Promise.all(promises); // Чекаємо, поки всі зникнуть
+    }
+    
+    /**
+     * Анімація "Tumble Down" (Справжнє падіння)
+     */
+    async function animateTumbleDown(winIndexes, nextGridData) {
+      if (!nextGridData) return;
+        
+      const promises = [];
+      const SYMBOL_HEIGHT_PERCENT = 100 / 6; // 16.666%
+
+      // Групуємо виграші по стовпцях
+      const winsByColumn = {};
+      for (const [col, row] of winIndexes) {
+        if (!winsByColumn[col]) winsByColumn[col] = [];
+        winsByColumn[col].push(row);
+      }
+
+      for (let c = 0; c < 5; c++) {
+        const reel = reelElements[c];
+        const strip = reel.querySelector('.symbols-strip');
+        const winningRowsInCol = (winsByColumn[c] || []).sort((a, b) => b - a); // 5..0
+        
+        const newSymbolCount = winningRowsInCol.length;
+        if (newSymbolCount === 0) continue; // Цей стовпець не мав виграшів
+
+        promises.push(new Promise(resolve => {
+          const newColumnData = nextGridData[c];
+          
+          // 1. Анімуємо "виживших"
+          const survivors = [];
+          for(let r = 0; r < 6; r++) {
+             // Якщо рядок НЕ виграшний
+             if (!winningRowsInCol.includes(r)) {
+                const symbolEl = strip.children[SYMBOL_BUFFER_COUNT + r];
+                
+                // Рахуємо, на скільки рядків він має впасти
+                const fallBy = winningRowsInCol.filter(winRow => winRow > r).length;
+                if (fallBy > 0) {
+                    symbolEl.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                    // % падіння = кількість_рядків * 100% (відносно висоти елемента)
+                    symbolEl.style.transform = `translateY(${fallBy * 100}%)`;
+                }
+                survivors.push(symbolEl);
+             }
+          }
+          
+          // 2. Створюємо та анімуємо нові символи
+          const newSymbols = [];
+          for(let i = 0; i < newSymbolCount; i++) {
+             const newSymbolId = newColumnData[i]; // Беремо з nextGrid
+             const newEl = createSymbolElement(newSymbolId);
+             
+             // Ставимо їх *над* екраном (всередині буфера)
+             newEl.style.transition = 'none';
+             // Початкова Y = (індекс + 1) * 100%
+             const startY = (i + 1) * -100; // %
+             newEl.style.transform = `translateY(${startY}%)`;
+             
+             strip.prepend(newEl); // Додаємо на початок стрічки
+             newSymbols.push(newEl);
+          }
+          
+          // 3. Запускаємо анімацію падіння нових
+          setTimeout(() => {
+             newSymbols.forEach((el, i) => {
+                el.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                el.style.transform = 'translateY(0)';
+             });
+          }, 50); // Маленька затримка
+
+          // 4. Очищення DOM після анімації
+          setTimeout(() => {
+              const newVisibleStrip = document.createDocumentFragment();
+              const newBuffer = document.createDocumentFragment();
+              
+              // Додаємо новий буфер
+              for (let i = 0; i < SYMBOL_BUFFER_COUNT; i++) {
+                 newBuffer.appendChild(createSymbolElement(getRandomSymbol().id));
+              }
+              
+              // Додаємо нові символи (з nextGrid)
+              for (let r = 0; r < 6; r++) {
+                 const symbolEl = createSymbolElement(newColumnData[r]);
+                 symbolEl.dataset.col = c;
+                 symbolEl.dataset.row = r;
+                 newVisibleStrip.appendChild(symbolEl);
+              }
+              
+              // Повністю замінюємо вміст стрічки
+              strip.innerHTML = '';
+              strip.style.transition = 'none';
+              strip.style.transform = 'translateY(0)';
+              
+              strip.appendChild(newBuffer);
+              strip.appendChild(newVisibleStrip);
+              
+              resolve();
+          }, 500); // 400ms анімація + 100ms запас
+          
+        }));
+      }
       
-      // 5. Коли всі анімації завершені, перевіряємо, чи є наступний стан CTA
+      await Promise.all(promises);
+    }
+    
+    // Анімація множника
+    async function animateMultiplier(lastCascadeWin) {
+      const multiplier = Math.floor(Math.random() * 26) + 25; // 25-50
+      const multiplierValue = `x${multiplier}`;
+      multiplierContainer.innerText = multiplierValue;
+      
+      // (ВИПРАВЛЕНО) Додаємо бонусний виграш
+      const bonusWin = (lastCascadeWin > 0 ? lastCascadeWin : 2.0) * multiplier; // Множимо останній каскад
+      totalWin += bonusWin;
+      tumbleWinAmountEl.innerText = `$${totalWin.toFixed(2)}`;
+      
+      multiplierContainer.style.animation = 'multiplierFall 0.5s ease-out forwards';
+      await sleep(500);
+      multiplierContainer.style.animation = 'multiplierLand 0.3s ease-in-out forwards';
+      await sleep(300);
+      await sleep(1000);
+      multiplierContainer.style.animation = 'multiplierFadeOut 0.5s ease-out forwards';
+      await sleep(500);
+      multiplierContainer.style.animation = '';
+      multiplierContainer.style.opacity = 0;
+    }
+
+    // --- Головний контролер гри ---
+    async function runGame(stateName) {
+      if (isSpinning) return;
+      
+      const state = gameStates[stateName];
+      if (!state || !state.grid) {
+        // Обробка CTA
+        if (stateName === 'cta') {
+          updateUI('cta');
+          currentStateName = 'cta';
+          isSpinning = false;
+          mainBtn.disabled = false;
+        }
+        return;
+      }
+
+      isSpinning = true;
+      mainBtn.disabled = true;
+      
+      // --- !! ВИПРАВЛЕНО: Скидання лічильника видалено !! ---
+      // (Рахунок тепер постійний, як ви просили)
+      // totalWin = 0.0;
+      // tumbleWinAmountEl.innerText = `$${totalWin.toFixed(2)}`;
+
+      // 1. Анімуємо "вращение" (Spin)
+      const duration = SPIN_DURATIONS[state.spinDuration] || 1.0;
+      await animateSpin(state, duration);
+      
+      // 2. Оновлюємо UI (текст, Зевс)
+      updateUI(stateName);
+      
+      // 3. Запускаємо цикл каскадів (з початковим виграшем)
+      await runCascade(state);
+      
+      // 4. Коли все завершено
       if (state.nextState === 'cta') {
-        // Якщо наступний стан - CTA, оновлюємо UI (але ще не стан)
         updateUI('cta');
-        currentStateName = 'cta'; // Оновлюємо стан тут
+        currentStateName = 'cta'; 
       }
       
       isSpinning = false;
@@ -758,46 +972,38 @@
 
     // --- Запуск гри ---
     window.onload = () => {
-      initGrid(); 
-      currentStateName = "welcome"; // Встановлюємо початковий стан
+      currentStateName = "welcome";
       
-      // 1. Показуємо UI для "welcome"
+      // 1. Генеруємо початкову сітку
+      initGrid(gameStates.welcome.grid);
+      
+      // 2. Показуємо UI для "welcome"
       updateUI(currentStateName); 
       
-      // 2. ВИПРАВЛЕНО: Миттєво показуємо сітку (без анімації)
-      const welcomeGrid = gameStates[currentStateName].grid;
-      displayStaticGrid(welcomeGrid);
-      
-      // 3. Це ГОЛОВНИЙ КЕРУЮЧИЙ цикл, керований кліком
+      // 3. ГОЛОВНИЙ КЕРУЮЧИЙ цикл
       mainBtn.onclick = () => {
         if (isSpinning) return;
 
-        // Визначаємо, який стан буде НАСТУПНИМ
         const nextStateName = gameStates[currentStateName].nextState;
         
-        if (nextStateName === 'cta') {
-          // Якщо поточний стан ВЖЕ 'cta' (тобто ми завершили 'mega')
-          if (currentStateName === 'cta') {
+        if (currentStateName === 'cta') {
             console.log("CTA Clicked! Redirecting...");
             // window.location.href = "YOUR_URL_HERE";
-          } else {
-             // Це трапиться, якщо 'mega' завершиться
-             currentStateName = nextStateName;
-             updateUI(currentStateName);
-          }
-        } else if (nextStateName) {
-          // Якщо це звичайний спін, оновлюємо стан і запускаємо анімації
+            
+            // Перезапуск гри
+            currentStateName = 'welcome';
+            updateUI(currentStateName);
+            initGrid(gameStates[currentStateName].grid);
+            return;
+        }
+
+        if (nextStateName) {
           currentStateName = nextStateName;
-          runSpin(currentStateName);
-        } else if (currentStateName === 'cta') {
-            // Обробка кліку на CTA кнопку
-            console.log("CTA Clicked! Redirecting...");
-            // window.location.href = "YOUR_URL_HERE";
+          runGame(currentStateName);
         }
       };
     };
-    // --- Кінець коду з 'screens.js' ---
-  
+    
   </script>
 
 </body>
