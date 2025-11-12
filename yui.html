@@ -80,10 +80,11 @@
     /* .slot-frame - Рамка (Джерело правди) */
     .slot-frame {
       position: absolute;
-      top: 14.5%;
+      top: 18%;
       left: 5%;
       width: 90%;
-      height: 46%;
+      height: 41%;
+      transform: scale(1.45);
       background: url('assets/png/game_props/Reel_Frame.png') center center / 100% 100% no-repeat;
       z-index: 5; /* Поверх .slot-area */
       pointer-events: none; 
@@ -102,7 +103,7 @@
       justify-content: space-between;
       
       /* Фон барабанів (підкладка) */
-      background: url('assets/png/game_props/Reel_Base.png') center center / cover;
+      background: url('assets/png/game_props/Reel_Base.png') center center;
       
       /* !! ВІДСТУПИ, щоб контент був *всередині* рамки !! */
       padding: 15px 12px; 
