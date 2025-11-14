@@ -1617,38 +1617,7 @@
             will-change: transform, opacity;
         }
 
-        .coin-fly {
-            position: absolute;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #FFF9D6, #FFD700 50%, #FFB84D 100%);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4), 0 0 12px rgba(255,215,0,0.6);
-            transform-origin: center;
-            will-change: transform, opacity;
-        }
-
-        .coin-burst {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: #FFF7D6;
-            border-radius: 2px;
-            box-shadow: 0 0 8px rgba(255,215,0,0.9);
-            pointer-events: none;
-            opacity: 0;
-        }
-
-        /* Pulse effect applied to the total when coins arrive */
-        .total-pulse {
-            animation: totalPulseAnim 520ms cubic-bezier(0.2,0.9,0.2,1) forwards;
-        }
-
-        @keyframes totalPulseAnim {
-            0% { transform: scale(1); text-shadow: 0 0 12px #FFD700; }
-            40% { transform: scale(1.18); text-shadow: 0 0 28px #FFD700, 0 0 48px #fff; }
-            100% { transform: scale(1); text-shadow: 0 0 12px #FFD700; }
-        }
+        /* Flying coins animation removed */
 
 
 
@@ -3253,7 +3222,9 @@
                         let symbolId;
                         if (i >= spinLength - 6) {
                             // Last 6 symbols - the target result
-                            symbolId = targetGrid[colIndex][i - (spinLength - 6)];
+                            // Simple: just use the grid directly, no offset manipulation
+                            const gridRowIndex = i - (spinLength - 6); // 0-5
+                            symbolId = targetGrid[colIndex][gridRowIndex];
                         } else {
                             // Random symbols for spinning effect
                             symbolId = symbols[Math.floor(Math.random() * 9)].id;
@@ -3302,21 +3273,46 @@
                     column.offsetHeight;
 
                     // Animate spin - scroll to show the last 6 symbols (target)
-                    // Compute spin duration. Make mega spins 2-3 seconds longer for simple dramatic effect.
-                    let duration = 700 + colIndex * 140;
+                    // All reels START at same time, but have DIFFERENT durations (cascade effect)
+                    // First reel is fastest, each subsequent reel is slower
+                    let baseDuration = 2800;
                     if (preWinLevel === 'mega') {
-                        const baseMega = 1400 + colIndex * 260 + Math.floor(Math.random() * 160);
-                        // for MEGA give a longer, more dramatic spin
-                        const extraMs = 3000 + Math.floor(Math.random() * 2000); // add 3000..5000ms
-                        duration = Math.round(baseMega + extraMs);
+                        baseDuration = 4200;
                     }
+                    
+                    // Each reel gets progressively LONGER duration (cascade visual effect)
+                    // Reel 0: fastest (shortest time)
+                    // Reel 1: slightly slower
+                    // Reel 2: even slower
+                    // ... and so on
+                    const cascadeIncrement = 140; // Each reel adds this much time (ms)
+                    let duration = baseDuration + (colIndex * cascadeIncrement);
+                    
+                    // Add randomness only to MEGA
+                    if (preWinLevel === 'mega') {
+                        duration += Math.floor(Math.random() * 300);
+                    }
+                    
+                    column.style.transition = 'none'; // Reset transition
+                    column.style.transform = `translateY(0%)`; // Reset position
+                    
+                    // Force reflow to apply position reset
+                    column.offsetHeight;
+                    
+                    // Start animation IMMEDIATELY (no stagger delay) - all reels start together
                     column.style.transition = `transform ${duration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
                     // Compute translate so last `visibleCount` symbols are visible
                     const visibleTranslate = -((spinLength - visibleCount) / spinLength) * 100;
                     column.style.transform = `translateY(${visibleTranslate}%)`;
 
-                    // Resolve slightly after the CSS transition to ensure end-state settled
-                    setTimeout(() => { resolve(); }, duration + 60);
+                    // Resolve after the longest animation (last reel) completes
+                    const maxDuration = baseDuration + ((reels.length - 1) * cascadeIncrement) + (preWinLevel === 'mega' ? 300 : 0);
+                    if (colIndex === reels.length - 1) {
+                        setTimeout(() => { resolve(); }, maxDuration + 60);
+                    } else {
+                        // Other reels resolve when their individual animation completes
+                        setTimeout(() => { resolve(); }, duration + 60);
+                    }
                 }));
             });
 
@@ -3444,101 +3440,15 @@
             });
         }
 
-        // Fancy add-to-total with flying coins and a gentle pulse on the total
+        // Simple add-to-total without flying coins animation (removed)
         async function showSingleAddToTotal(amount) {
+            // Just update the total directly - no coin animation
             try {
-                const container = document.querySelector('.game-container');
-                if (!container || !slotArea || !totalWinAmountEl) {
-                    // fallback
-                    updateTotalWin(amount);
-                    return;
-                }
-
-                // Create transient container for coins
-                const coinContainer = document.createElement('div');
-                coinContainer.className = 'coin-fly-container';
-                container.appendChild(coinContainer);
-
-                // Compute start (slot center) and target (total display) coordinates
-                const slotRect = slotArea.getBoundingClientRect();
-                const gameRect = gameContainer.getBoundingClientRect();
-                const startX = slotRect.left - gameRect.left + slotRect.width / 2;
-                const startY = slotRect.top - gameRect.top + slotRect.height / 2;
-
-                const totalRect = totalWinAmountEl.getBoundingClientRect();
-                const targetX = totalRect.left - gameRect.left + totalRect.width / 2;
-                const targetY = totalRect.top - gameRect.top + totalRect.height / 2;
-
-                // Number of coins to animate (more for larger amounts)
-                const coinCount = Math.min(6, Math.max(3, Math.floor(Math.sqrt(amount))));
-                const promises = [];
-
-                for (let i = 0; i < coinCount; i++) {
-                    const coin = document.createElement('div');
-                    coin.className = 'coin-fly';
-                    coin.style.left = startX - 18 + 'px';
-                    coin.style.top = startY - 18 + 'px';
-                    coinContainer.appendChild(coin);
-
-                    // Slight random offset & scale to start
-                    const sx = (Math.random() - 0.5) * 40;
-                    const sy = (Math.random() - 0.5) * 30;
-                    coin.style.transform = `translate(${sx}px, ${sy}px) scale(${0.9 + Math.random() * 0.3})`;
-
-                    // Build animation for each coin: arc + rotate + fade
-                    const delay = i * 90 + Math.random() * 120;
-                    const dur = 520 + Math.random() * 260;
-
-                    const keyframes = [
-                        { transform: `translate(${sx}px, ${sy}px) scale(1) rotate(0deg)`, opacity: 1 },
-                        { transform: `translate(${(targetX - startX) * 0.6 + sx}px, ${(targetY - startY) * 0.6 + sy - 40}px) scale(0.95) rotate(${120 + Math.random()*180}deg)`, opacity: 1, offset: 0.6 },
-                        { transform: `translate(${(targetX - startX) + sx}px, ${(targetY - startY) + sy}px) scale(0.6) rotate(${360 + Math.random()*360}deg)`, opacity: 0 }
-                    ];
-
-                    const anim = coin.animate(keyframes, {
-                        duration: dur,
-                        delay,
-                        easing: 'cubic-bezier(0.22, 0.9, 0.22, 1)'
-                    });
-
-                    promises.push(new Promise(res => {
-                        anim.onfinish = () => {
-                            // small burst at arrival
-                            try {
-                                const burst = document.createElement('div');
-                                burst.className = 'coin-burst';
-                                burst.style.left = (targetX - 5) + 'px';
-                                burst.style.top = (targetY - 5) + 'px';
-                                container.appendChild(burst);
-                                burst.animate([
-                                    { transform: 'scale(0.6)', opacity: 1 },
-                                    { transform: 'scale(1.6)', opacity: 0 }
-                                ], { duration: 320, easing: 'cubic-bezier(0.2,0.8,0.2,1)' });
-                                setTimeout(() => { try { burst.remove(); } catch(e){} }, 360);
-                            } catch (e) {}
-
-                            try { coin.remove(); } catch (e) {}
-                            res();
-                        };
-                    }));
-                }
-
-                // Slightly enlarge/pulse the total when coins arrive
-                Promise.all(promises).then(async () => {
-                    try { totalWinAmountEl.classList.add('total-pulse'); } catch(e){}
-                    setTimeout(() => { try { totalWinAmountEl.classList.remove('total-pulse'); } catch(e){} }, 600);
-                    // Smoothly animate the numeric credit
-                    try { await animateCreditToTotal(amount, 900); } catch(e) { updateTotalWin(amount); }
-                    try { playSound('coin-sound'); } catch(e) {}
-                    // cleanup container
-                    try { coinContainer.remove(); } catch(e) {}
-                }).catch(err => {
-                    // fallback update
-                    try { updateTotalWin(amount); } catch(e){}
-                    try { coinContainer.remove(); } catch(e) {}
-                });
-
-            } catch (e) { console.log('showSingleAddToTotal error', e); }
+                await animateCreditToTotal(amount, 900);
+                try { playSound('coin-sound'); } catch(e) {}
+            } catch(e) { 
+                updateTotalWin(amount);
+            }
         }
 
         // Reset total win amount
@@ -4328,7 +4238,7 @@
                                     setTimeout(() => removeLargeMegaText(), 1200);
                         } catch (e) {
                             console.log('Mega cinematic error', e);
-                            showSingleAddToTotal(creditedAmount);
+                            updateTotalWin(creditedAmount);
                         } finally {
                             try {
                                 // For mega wins we want Zeus lightning / fullscreen lightning to persist
@@ -4345,7 +4255,7 @@
                 } else {
                     this.winFlowPromise = null;
                     // Single add-to-total overlay and credit the amount for non-mega
-                    showSingleAddToTotal(creditedAmount);
+                    updateTotalWin(creditedAmount);
                 }
                 // Big-win board removed; other cinematic effects handled elsewhere
             }

@@ -24,8 +24,8 @@
     "title": "Small Win!",
     "subtitle": "Неплохо. Продолжим?",
     "btnText": "SPIN",
-    "grid": [["lv1","lv2","hv1","hv1","hv1","lv1"],["lv2","lv3","lv4","lv5","lv2","lv2"],["lv3","lv4","lv5","lv1","lv2","lv3"],["lv4","lv5","lv1","lv2","lv3","lv4"],["lv5","lv1","lv2","lv3","lv4","lv5"]],
-    "winPositions": [[0,2],[0,3],[0,4]],
+    "grid": [["lv1","hv1","hv1","hv1","lv1","lv2"],["lv2","lv3","lv4","lv5","lv2","lv2"],["lv3","lv4","lv5","lv1","lv2","lv3"],["lv4","lv5","lv1","lv2","lv3","lv4"],["lv5","lv1","lv2","lv3","lv4","lv5"]],
+    "winPositions": [[0,0],[1,0],[2,0],[3,0],[4,0],[5,0]],
     "next": "win2"
   },
   "win2": {
@@ -33,8 +33,8 @@
     "title": "Medium Win!",
     "subtitle": "Близко. Ещё один шаг.",
     "btnText": "SPIN",
-    "grid": [["lv1","hv2","hv2","lv1","lv2","lv3"],["lv2","hv2","hv2","lv2","lv3","lv4"],["lv3","hv2","hv2","lv3","lv4","lv5"],["lv4","lv5","lv1","lv4","lv5","lv1"],["lv5","lv1","lv2","lv5","lv1","lv2"]],
-    "winPositions": [[0,1],[0,2],[1,1],[1,2],[2,1],[2,2]],
+    "grid": [["lv1","hv2","hv2","hv2","lv1","lv2"],["lv2","hv2","hv2","hv2","lv2","lv3"],["lv3","lv4","lv5","lv1","lv4","lv5"],["lv4","lv5","lv1","lv2","lv3","lv4"],["lv5","lv1","lv2","lv3","lv4","lv5"]],
+    "winPositions": [[0,0],[1,0],[2,0],[3,0],[4,0],[5,0]],
     "next": "fake"
   },
   "fake": {
@@ -54,7 +54,7 @@
     "collectBtnText": "COLLECT BONUS",
     "collectHref": "#",
     "grid": [["hv4","hv4","wild","scatter","hv4","hv4"],["hv4","wild","scatter","hv4","wild","scatter"],["wild","scatter","hv4","wild","scatter","hv4"],["scatter","hv4","hv4","wild","hv4","wild"],["hv4","hv4","wild","scatter","hv4","wild"]],
-    "winPositions": [[0,0],[0,1],[0,4],[0,5],[1,0],[1,3],[2,2],[2,5],[3,1],[3,2],[3,4],[4,0],[4,1],[4,4]],
+    "winPositions": [[0,0],[1,0],[2,0],[3,0],[4,0],[5,0]],
     "next": "cta"
   },
   "cta": {
