@@ -1,0 +1,69 @@
+{
+  "initialState": "welcome",
+  "collectBtnText": "COLLECT BONUS",
+  "collectHref": "#",
+  "welcome": {
+    "zeus": "assets/animations/zeus_pose_all-zeus_idle.gif",
+    "title": "Сразись за силу Олимпа",
+    "subtitle": "Нажми SPIN",
+    "btnText": "SPIN",
+    "grid": [],
+    "next": "win1"
+  },
+  "loss": {
+    "zeus": "assets/animations/zeus_pose_all-zeus_idle.gif",
+    "title": "Попробуй ещё раз",
+    "subtitle": "Попробуй ещё раз",
+    "btnText": "SPIN",
+    "grid": [],
+    "winPositions": [],
+    "next": "mega"
+  },
+  "win1": {
+    "zeus": "assets/animations/zeus_pose_all-zeus_idle_thunder.gif",
+    "title": "Small Win!",
+    "subtitle": "Неплохо. Продолжим?",
+    "btnText": "SPIN",
+    "grid": [["lv1","lv2","hv1","hv1","hv1","lv1"],["lv2","lv3","lv4","lv5","lv2","lv2"],["lv3","lv4","lv5","lv1","lv2","lv3"],["lv4","lv5","lv1","lv2","lv3","lv4"],["lv5","lv1","lv2","lv3","lv4","lv5"]],
+    "winPositions": [[0,2],[0,3],[0,4]],
+    "next": "win2"
+  },
+  "win2": {
+    "zeus": "assets/animations/zeus_pose_all-zeus_summon_titan_symbol.gif",
+    "title": "Medium Win!",
+    "subtitle": "Близко. Ещё один шаг.",
+    "btnText": "SPIN",
+    "grid": [["lv1","hv2","hv2","lv1","lv2","lv3"],["lv2","hv2","hv2","lv2","lv3","lv4"],["lv3","hv2","hv2","lv3","lv4","lv5"],["lv4","lv5","lv1","lv4","lv5","lv1"],["lv5","lv1","lv2","lv5","lv1","lv2"]],
+    "winPositions": [[0,1],[0,2],[1,1],[1,2],[2,1],[2,2]],
+    "next": "fake"
+  },
+  "fake": {
+    "zeus": "assets/animations/zeus_pose_all-zeus_idle_thunder.gif",
+    "title": "Big Win!",
+    "subtitle": "Великий виграш",
+    "btnText": "SPIN",
+    "grid": [["hv3","hv3","hv3","lv4","lv5","lv1"],["hv3","hv3","hv3","lv5","lv1","lv2"],["hv3","hv3","hv3","lv1","lv2","lv3"],["lv4","lv5","lv1","lv2","lv3","lv4"],["lv5","lv1","lv2","lv3","lv4","lv5"]],
+    "winPositions": [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],
+    "next": "loss"
+  },
+  "mega": {
+    "zeus": "assets/png/characters/zeus_suuper_charging_wild.png",
+    "title": "MEGA WIN",
+    "subtitle": "МЕГА ВИГРАШ!!!",
+    "btnText": "SPIN",
+    "collectBtnText": "COLLECT BONUS",
+    "collectHref": "#",
+    "grid": [["hv4","hv4","wild","scatter","hv4","hv4"],["hv4","wild","scatter","hv4","wild","scatter"],["wild","scatter","hv4","wild","scatter","hv4"],["scatter","hv4","hv4","wild","hv4","wild"],["hv4","hv4","wild","scatter","hv4","wild"]],
+    "winPositions": [[0,0],[0,1],[0,4],[0,5],[1,0],[1,3],[2,2],[2,5],[3,1],[3,2],[3,4],[4,0],[4,1],[4,4]],
+    "next": "cta"
+  },
+  "cta": {
+    "zeus": "assets/png/characters/zeus_suuper_charging_wild.png",
+    "title": "MEGA WIN",
+    "subtitle": "Поздравляем! Вы выиграли мега джекпот!",
+    "btnText": "Играть сейчас / Забрать бонус",
+    "collectBtnText": "COLLECT BONUS",
+    "collectHref": "#",
+    "next": "welcome"
+  }
+}
