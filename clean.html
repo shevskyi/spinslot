@@ -3093,7 +3093,7 @@
                 
                 symbol.dataset.symbolId = symbolId;
                 symbol.dataset.row = i;
-                column.appendChild(symbol);
+                column.prepend(symbol);
             }
 
             // Position to show the last 6 symbols (target) as the visible area
@@ -3258,7 +3258,7 @@
 
                         symbol.dataset.symbolId = symbolId;
                         symbol.dataset.row = i;
-                        frag.appendChild(symbol);
+                        frag.prepend(symbol);
                     }
                     column.appendChild(frag);
 
