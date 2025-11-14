@@ -1686,6 +1686,10 @@
             { id: "scatter", src: "assets/png/symbols/gool_scatter_win.png" }
         ];
 
+    // Total symbols used during a spin sequence (controls how many items are scrolled)
+    // Increase this to lengthen internal spin distance (more apparent rotations)
+    const TOTAL_SPIN_SYMBOLS = 36;
+
         const combinations = [
             { id: "small_win_lv1", symbolId: "lv1", count: 4, winLevel: "small" },
             { id: "small_win_lv2", symbolId: "lv2", count: 4, winLevel: "small" },
@@ -3086,11 +3090,13 @@
 
             // Create symbols in correct order for smooth spinning
             // Buffer symbols + target symbols + more buffer = seamless loop
-            const totalSymbols = 24; // More symbols for longer spin
+            const totalSymbols = TOTAL_SPIN_SYMBOLS; // use global setting to control spin distance
             
             for (let i = 0; i < totalSymbols; i++) {
                 const symbol = document.createElement('div');
                 symbol.className = 'symbol-item';
+                // Ensure each symbol occupies 1 / totalSymbols of column height
+                symbol.style.height = `${100 / totalSymbols}%`;
                 
                 let symbolId;
                 if (columnData && columnData.length > 0 && i >= totalSymbols - 6) {
@@ -3098,7 +3104,7 @@
                     symbolId = columnData[i - (totalSymbols - 6)];
                 } else {
                     // All others are random buffer
-                    symbolId = symbols[Math.floor(Math.random() * 9)].id;
+                    symbolId = symbols[Math.floor(Math.random() * symbols.length)].id;
                 }
                 
                 // compact creation; avoid verbose logging in production
@@ -3133,11 +3139,13 @@
                 
                 symbol.dataset.symbolId = symbolId;
                 symbol.dataset.row = i;
-                column.prepend(symbol);
+                column.appendChild(symbol);
             }
 
             // Position to show the last 6 symbols (target) as the visible area
             const visibleCount = 6;
+            // Set column height proportional to totalSymbols so 6 items remain visible
+            column.style.height = `${(totalSymbols / visibleCount) * 100}%`;
             const visibleTranslate = -((totalSymbols - visibleCount) / totalSymbols) * 100;
             column.style.transform = `translateY(${visibleTranslate}%)`;
 
@@ -3203,16 +3211,17 @@
                     // Clear current column and rebuild with target at the end
                     column.innerHTML = '';
 
-                    // Create spinning sequence: use 24 symbols total, last 6 are the target
-                    // Keep spinLength fixed so the visible grid remains exactly 6 rows.
+                    // Create spinning sequence using global TOTAL_SPIN_SYMBOLS so visible grid remains 6 rows.
                     const visibleCount = 6;
-                    const spinLength = 24; // Total symbols in spin sequence (4x reel height)
+                    const spinLength = TOTAL_SPIN_SYMBOLS; // Total symbols in spin sequence
                     
                     // Batch append to avoid layout thrash and set async image decoding/loading
                     const frag = document.createDocumentFragment();
                     for (let i = 0; i < spinLength; i++) {
                         const symbol = document.createElement('div');
                         symbol.className = 'symbol-item';
+                        // Ensure each symbol occupies 1 / spinLength of column height during spin
+                        symbol.style.height = `${100 / spinLength}%`;
 
                         let symbolId;
                         if (i >= spinLength - 6) {
@@ -3222,7 +3231,7 @@
                             symbolId = targetGrid[colIndex][gridRowIndex];
                         } else {
                             // Random symbols for spinning effect
-                            symbolId = symbols[Math.floor(Math.random() * 9)].id;
+                            symbolId = symbols[Math.floor(Math.random() * symbols.length)].id;
                         }
 
                         // Add lightweight debug styles (won't affect layout)
@@ -3253,12 +3262,12 @@
 
                         symbol.dataset.symbolId = symbolId;
                         symbol.dataset.row = i;
-                        frag.prepend(symbol);
+                        frag.appendChild(symbol);
                     }
                     column.appendChild(frag);
 
-                    // Set column height for 24 symbols (4x reel height) so visible area shows 6 rows
-                    column.style.height = '400%'; // 24 symbols = 4x reel height
+                    // Set column height dynamically based on spinLength so visible area shows 6 rows
+                    column.style.height = `${(spinLength / visibleCount) * 100}%`;
                     
                     // Start from top
                     column.style.transition = 'none';
@@ -3270,17 +3279,17 @@
                     // Animate spin - scroll to show the last 6 symbols (target)
                     // All reels START at same time, but have DIFFERENT durations (cascade effect)
                     // First reel is fastest, each subsequent reel is slower
-                    let baseDuration = 2800;
+                    // Make base spin feel faster but elongate cascade by increasing per-reel increment
+                    // Result: each reel's internal motion is quicker (lower baseDuration)
+                    // but the stop cascade takes slightly longer (higher cascadeIncrement)
+                    // Make inner spin faster by reducing base duration, while increasing cascade increment
+                    let baseDuration = 2000; // faster internal motion
                     if (preWinLevel === 'mega') {
-                        baseDuration = 4200;
+                        baseDuration = 3200;
                     }
-                    
-                    // Each reel gets progressively LONGER duration (cascade visual effect)
-                    // Reel 0: fastest (shortest time)
-                    // Reel 1: slightly slower
-                    // Reel 2: even slower
-                    // ... and so on
-                    const cascadeIncrement = 140; // Each reel adds this much time (ms)
+
+                    // Each reel adds this much time to its stop moment (ms)
+                    const cascadeIncrement = 300; // stronger cascade: each subsequent reel stops 300ms later
                     let duration = baseDuration + (colIndex * cascadeIncrement);
                     
                     // Add randomness only to MEGA
@@ -3562,13 +3571,15 @@
                     const totalSymbols = column.children.length;
                     const symbolsToRemove = [];
                     
+                    // Compute symbol indices relative to the current DOM ordering.
+                    // Visible symbols are the last `visibleCount` children (we render so last items are visible),
+                    // so map visible row (0..visibleCount-1) to child index: len - visibleCount + row
+                    const visibleCount = 6;
+                    const currentLen = column.children.length;
                     winningRows.forEach(row => {
-                        // The visible symbols are at the top of the DOM due to prepend, so index is just the row.
-                        const symbolIndex = row;
+                        const symbolIndex = currentLen - visibleCount + row;
                         const symbolElement = column.children[symbolIndex];
-                        if (symbolElement) {
-                            symbolsToRemove.push(symbolElement);
-                        }
+                        if (symbolElement) symbolsToRemove.push(symbolElement);
                     });
 
                     // Remove the symbols
@@ -3578,12 +3589,17 @@
 
                     // Create new symbols to fill the gaps
                     const newSymbols = [];
+                    const spinLength = TOTAL_SPIN_SYMBOLS;
                     for (let i = 0; i < symbolsToRemove.length; i++) {
                         const symbol = document.createElement('div');
                         symbol.className = 'symbol-item falling';
-                        
-                        const randomSymbolId = symbols[Math.floor(Math.random() * 9)].id;
-                        
+                        // ensure consistent height with current spinLength
+                        symbol.style.height = `${100 / spinLength}%`;
+                        symbol.style.backgroundColor = 'rgba(0, 255, 0, 0.03)';
+                        symbol.style.border = '1px solid rgba(255, 255, 255, 0.06)';
+
+                        const randomSymbolId = symbols[Math.floor(Math.random() * symbols.length)].id;
+
                         const img = document.createElement('img');
                         img.loading = 'lazy';
                         img.decoding = 'async';
@@ -3604,22 +3620,37 @@
                             symbol.appendChild(fallback);
                         };
                         symbol.appendChild(img);
-                        
+
                         symbol.dataset.symbolId = randomSymbolId;
                         newSymbols.push(symbol);
                     }
 
-                    // Insert new symbols at the beginning of the visible area
-                    // Find the position where visible symbols start
-                    const visibleStartIndex = totalSymbols - symbolsToRemove.length - 6;
-                    
-                    newSymbols.reverse().forEach(symbol => {
-                        if (column.children[visibleStartIndex]) {
-                            column.insertBefore(symbol, column.children[visibleStartIndex]);
-                        } else {
-                            column.appendChild(symbol);
-                        }
-                    });
+                    // Insert new symbols at the top so the visible area (last 6 items) stays aligned.
+                    const currentAfterRemovalLen = column.children.length;
+                    const visibleStartIndex = Math.max(0, currentAfterRemovalLen - 6);
+                    // Insert in order so the first new symbol ends up nearest the visible area
+                    for (let i = newSymbols.length - 1; i >= 0; i--) {
+                        const symbol = newSymbols[i];
+                        if (column.children[visibleStartIndex]) column.insertBefore(symbol, column.children[visibleStartIndex]);
+                        else column.appendChild(symbol);
+                    }
+
+                    // Normalize sizing in pixels to avoid sub-pixel rounding causing uneven gaps.
+                    try {
+                        const reelEl = reel.getBoundingClientRect ? reel : reel;
+                        // reel viewport height
+                        const reelHeight = reel.getBoundingClientRect().height;
+                        const columnHeightPx = (spinLength / visibleCount) * reelHeight;
+                        // Force column to exact pixel height to avoid percent rounding
+                        column.style.height = `${columnHeightPx}px`;
+                        const symbolPx = columnHeightPx / spinLength;
+                        Array.from(column.children).forEach(ch => {
+                            ch.style.height = `${symbolPx}px`;
+                        });
+                    } catch (e) {
+                        // If anything fails, fall back to percent heights (already set elsewhere)
+                        console.log('normalize column sizing failed', e);
+                    }
                 });
 
                 // Wait for cascade animation
