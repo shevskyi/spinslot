@@ -1901,6 +1901,8 @@
         let currentState = 'welcome';
         let isSpinning = false;
         let totalWinAmount = 0; // Track total winnings
+        let spinCount = 0;
+        const predefinedOutcomes = ['win', 'bigger_win', 'fake_lose', 'mega_win'];
         // When true, only play the explosion sound ('ice-win-6') and suppress other sounds
         let explosionOnlyMode = false;
         // Percentage of total to deduct on a losing spin (default = 2%)
@@ -1966,11 +1968,12 @@
 
         // Helper functions
         function generateRandomGrid() {
+            // Produce a grid in column-major format: 6 columns, each with 6 visible symbols
             const grid = [];
-            for (let col = 0; col < 5; col++) {
+            for (let col = 0; col < 6; col++) {
                 const column = [];
                 for (let row = 0; row < 6; row++) {
-                    const randomSymbol = symbols[Math.floor(Math.random() * 9)]; // Exclude wild and scatter for random
+                    const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
                     column.push(randomSymbol.id);
                 }
                 grid.push(column);
@@ -1978,14 +1981,60 @@
             return grid;
         }
 
+        // Normalize incoming grids (support both row-major and column-major shapes)
+        function normalizeGrid(inputGrid) {
+            if (!inputGrid) return generateRandomGrid();
+
+            // If already column-major 6x6
+            if (inputGrid.length === 6 && inputGrid[0] && inputGrid[0].length === 6) return inputGrid;
+
+            // If input is row-major 5x6 (5 rows, 6 columns) -> transpose to 6 columns x 5 rows and pad to 6 rows
+            if (inputGrid.length === 5 && inputGrid[0] && inputGrid[0].length === 6) {
+                const cols = [];
+                for (let c = 0; c < 6; c++) {
+                    cols[c] = [];
+                    for (let r = 0; r < 5; r++) {
+                        cols[c].push(inputGrid[r][c]);
+                    }
+                    while (cols[c].length < 6) {
+                        cols[c].push(symbols[Math.floor(Math.random() * symbols.length)].id);
+                    }
+                }
+                return cols;
+            }
+
+            // If input is 6 columns x 5 rows, pad each column to 6
+            if (inputGrid.length === 6 && inputGrid[0] && inputGrid[0].length === 5) {
+                return inputGrid.map(col => {
+                    const copy = col.slice();
+                    while (copy.length < 6) copy.push(symbols[Math.floor(Math.random() * symbols.length)].id);
+                    return copy;
+                });
+            }
+
+            // Unknown shape: try to coerce into 6x6 by filling with random symbols
+            try {
+                const coerced = [];
+                for (let c = 0; c < 6; c++) {
+                    coerced[c] = [];
+                    for (let r = 0; r < 6; r++) {
+                        coerced[c].push((inputGrid[c] && inputGrid[c][r]) ? inputGrid[c][r] : symbols[Math.floor(Math.random() * symbols.length)].id);
+                    }
+                }
+                return coerced;
+            } catch (e) {
+                return generateRandomGrid();
+            }
+        }
+
         function generateGridFromCombination(combination) {
+            // Ensure grid is column-major 6x6
             const grid = generateRandomGrid();
             const { symbolId, count } = combination;
-            let placedCount = 0;
 
-            // Get all available positions
+            // Collect positions for 6x6 grid
             const positions = [];
-            for (let col = 0; col < 5; col++) {
+            for (let col = 0; col < 6; col++) {
                 for (let row = 0; row < 6; row++) {
                     positions.push({ col, row });
                 }
@@ -3101,8 +3150,9 @@
             // initialize slot area with provided grid
             slotArea.innerHTML = '';
             
-            for (let col = 0; col < 5; col++) {
-                const reel = createReel(grid ? grid[col] : [], col);
+            const normGrid = normalizeGrid(grid);
+            for (let col = 0; col < 6; col++) {
+                const reel = createReel(normGrid ? normGrid[col] : [], col);
                 slotArea.appendChild(reel);
             }
             // slot area initialized
@@ -3658,24 +3708,49 @@
                 title.textContent = "Сразись за силу Олимпа";
 
                 initSlotArea(generateRandomGrid());
+                spinCount = 0; // Reset spin count
                 return;
             }
 
-            // Decide whether to have a winning spin or not
-            const isWinningSpin = Math.random() < 0.5; // 50% chance of winning
+            const outcome = predefinedOutcomes[spinCount % predefinedOutcomes.length];
+            spinCount++;
 
             let randomGrid;
             let winPositions = [];
             let winLevel = 'none';
 
-            if (isWinningSpin) {
-                const randomCombination = combinations[Math.floor(Math.random() * combinations.length)];
-                randomGrid = generateGridFromCombination(randomCombination);
-                const evaluation = evaluateGrid(randomGrid);
-                winPositions = evaluation.winPositions;
-                winLevel = randomCombination.winLevel;
+            switch (outcome) {
+                case 'win':
+                    winLevel = 'small';
+                    break;
+                case 'bigger_win':
+                    winLevel = 'big';
+                    break;
+                case 'fake_lose':
+                    winLevel = 'none';
+                    break;
+                case 'mega_win':
+                    winLevel = 'mega';
+                    break;
+            }
+
+            if (winLevel !== 'none') {
+                const possibleCombinations = combinations.filter(c => c.winLevel === winLevel);
+                const randomCombination = possibleCombinations[Math.floor(Math.random() * possibleCombinations.length)];
+                if (randomCombination) {
+                    randomGrid = generateGridFromCombination(randomCombination);
+                    const evaluation = evaluateGrid(randomGrid);
+                    winPositions = evaluation.winPositions;
+                } else {
+                    // Fallback to random grid if no combination found for the winLevel
+                    randomGrid = generateRandomGrid();
+                    winPositions = [];
+                    winLevel = 'none';
+                }
             } else {
                 randomGrid = generateRandomGrid();
+                winPositions = [];
+                winLevel = 'none';
             }
             
             await spinReels(randomGrid, winPositions);
@@ -4716,8 +4791,14 @@
         // Attempt to load external spin config (if present) so you can edit states/texts/wins
         // Initialize game after attempting to load config
         (async () => {
-            updateUIForWinLevel(currentState);
-            initSlotArea();
+            // Initialize minimal welcome UI and slot area
+            try {
+                if (title) title.textContent = 'Сразись за силу Олимпа';
+                if (subtitle) subtitle.textContent = '';
+                if (spinBtn) { spinBtn.textContent = 'SPIN'; spinBtn.classList.remove('collect-btn','bonus-btn'); spinBtn.disabled = false; }
+            } catch (e) {}
+            spinCount = 0;
+            initSlotArea(generateRandomGrid());
 
             // Ensure Zeus is visually centered before any spins start
             try {
