@@ -1686,6 +1686,18 @@
             { id: "scatter", src: "assets/png/symbols/gool_scatter_win.png" }
         ];
 
+        const combinations = [
+            { id: "small_win_lv1", symbolId: "lv1", count: 4, winLevel: "small" },
+            { id: "small_win_lv2", symbolId: "lv2", count: 4, winLevel: "small" },
+            { id: "small_win_lv3", symbolId: "lv3", count: 5, winLevel: "small" },
+            { id: "medium_win_lv4", symbolId: "lv4", count: 6, winLevel: "medium" },
+            { id: "medium_win_lv5", symbolId: "lv5", count: 7, winLevel: "medium" },
+            { id: "big_win_hv1", symbolId: "hv1", count: 8, winLevel: "big" },
+            { id: "big_win_hv2", symbolId: "hv2", count: 9, winLevel: "big" },
+            { id: "mega_win_hv3", symbolId: "hv3", count: 12, winLevel: "mega" },
+            { id: "mega_win_hv4", symbolId: "hv4", count: 15, winLevel: "mega" }
+        ];
+
         // Gameplay modifiers
         const smallWinPenaltyPercent = 20; // percent taken from small wins (default 20%)
 
@@ -1886,95 +1898,6 @@
             }
         } catch (e) { console.log('zeus init error', e); }
 
-        // Game states according to TZ
-        const gameStates = {
-            welcome: {
-                zeus: "assets/animations/zeus_pose_all-zeus_idle.gif",
-                title: "Сразись за силу Олимпа",
-                subtitle: "Нажми SPIN",
-                btnText: "SPIN",
-                grid: generateRandomGrid(),
-                next: "win1"
-            },
-            loss: {
-                zeus: "assets/animations/zeus_pose_all-zeus_idle.gif",
-                title: "Попробуй ещё раз",
-                subtitle: "Попробуй ещё раз",
-                btnText: "SPIN",
-                grid: generateRandomGrid(),
-                winPositions: [], // no win
-                next: "mega"
-            },
-            win1: {
-                zeus: "assets/animations/zeus_pose_all-zeus_idle_thunder.gif",
-                title: "Small Win!",
-                subtitle: "Неплохо. Продолжим?",
-                btnText: "SPIN",
-                grid: [
-                    ["lv1", "lv2", "hv1", "hv1", "hv1", "lv1"],
-                    ["lv2", "lv3", "lv4", "lv5", "lv2", "lv2"],
-                    ["lv3", "lv4", "lv5", "lv1", "lv2", "lv3"],
-                    ["lv4", "lv5", "lv1", "lv2", "lv3", "lv4"],
-                    ["lv5", "lv1", "lv2", "lv3", "lv4", "lv5"]
-                ],
-                winPositions: [[0,2], [0,3], [0,4]], // Small win - 3 symbols
-                next: "win2"
-            },
-            win2: {
-                zeus: "assets/animations/zeus_pose_all-zeus_summon_titan_symbol.gif",
-                title: "Medium Win!",
-                subtitle: "Близко. Ещё один шаг.",
-                btnText: "SPIN",
-                grid: [
-                    ["lv1", "hv2", "hv2", "lv1", "lv2", "lv3"],
-                    ["lv2", "hv2", "hv2", "lv2", "lv3", "lv4"],
-                    ["lv3", "hv2", "hv2", "lv3", "lv4", "lv5"],
-                    ["lv4", "lv5", "lv1", "lv4", "lv5", "lv1"],
-                    ["lv5", "lv1", "lv2", "lv5", "lv1", "lv2"]
-                ],
-                winPositions: [[0,1], [0,2], [1,1], [1,2], [2,1], [2,2]], // Medium win - 6 symbols
-                next: "fake"
-            },
-            fake: {
-                zeus: "assets/animations/zeus_pose_all-zeus_idle_thunder.gif", // Same as neutral - no sad emotion available
-                title: "Big Win!",
-                subtitle: "Великий виграш",
-                btnText: "SPIN",
-                grid: [
-                    ["hv3", "hv3", "hv3", "lv4", "lv5", "lv1"],
-                    ["hv3", "hv3", "hv3", "lv5", "lv1", "lv2"],
-                    ["hv3", "hv3", "hv3", "lv1", "lv2", "lv3"],
-                    ["lv4", "lv5", "lv1", "lv2", "lv3", "lv4"],
-                    ["lv5", "lv1", "lv2", "lv3", "lv4", "lv5"]
-                ],
-                winPositions: [[0,0], [0,1], [0,2], [1,0], [1,1], [1,2], [2,0], [2,1], [2,2]], // Big win - 9 symbols
-                next: "loss"
-            },
-            mega: {
-                zeus: "assets/animations/zeus_pose_all-zeus_super_charging_wild.gif",
-                title: "MEGA WIN",
-                subtitle: "МЕГА ВИГРАШ!!!",
-                btnText: "SPIN",
-                grid: [
-                    ["hv4", "hv4", "wild", "scatter", "hv4", "hv4"],
-                    ["hv4", "wild", "scatter", "hv4", "wild", "scatter"],
-                    ["wild", "scatter", "hv4", "wild", "scatter", "hv4"],
-                    ["scatter", "hv4", "hv4", "wild", "hv4", "wild"],
-                    ["hv4", "hv4", "wild", "scatter", "hv4", "wild"]
-                ],
-                winPositions: [[0,0], [0,1], [0,4], [0,5], [1,0], [1,3], [2,2], [2,5], [3,1], [3,2], [3,4], [4,0], [4,1], [4,4]], // Mega win - 14 symbols
-                next: "cta"
-            },
-            cta: {
-                zeus: "assets/animations/zeus_pose_all-zeus_super_charging_wild.gif",
-                title: "MEGA WIN",
-                subtitle: "Поздравляем! Вы выиграли мега джекпот!",
-                btnText: "Играть сейчас / Забрать бонус",
-                // No grid - keep the mega win grid visible
-                next: "welcome"
-            }
-        };
-
         let currentState = 'welcome';
         let isSpinning = false;
         let totalWinAmount = 0; // Track total winnings
@@ -2053,6 +1976,74 @@
                 grid.push(column);
             }
             return grid;
+        }
+
+        function generateGridFromCombination(combination) {
+            const grid = generateRandomGrid();
+            const { symbolId, count } = combination;
+            let placedCount = 0;
+
+            // Get all available positions
+            const positions = [];
+            for (let col = 0; col < 5; col++) {
+                for (let row = 0; row < 6; row++) {
+                    positions.push({ col, row });
+                }
+            }
+
+            // Shuffle positions to place winning symbols randomly
+            for (let i = positions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [positions[i], positions[j]] = [positions[j], positions[i]];
+            }
+
+            // Place winning symbols
+            for (let i = 0; i < count; i++) {
+                if (i < positions.length) {
+                    const { col, row } = positions[i];
+                    grid[col][row] = symbolId;
+                }
+            }
+
+            return grid;
+        }
+
+        function evaluateGrid(grid) {
+            const symbolCounts = new Map();
+            const symbolPositions = new Map();
+
+            for (let col = 0; col < grid.length; col++) {
+                for (let row = 0; row < grid[col].length; row++) {
+                    const symbolId = grid[col][row];
+                    if (!symbolCounts.has(symbolId)) {
+                        symbolCounts.set(symbolId, 0);
+                        symbolPositions.set(symbolId, []);
+                    }
+                    symbolCounts.set(symbolId, symbolCounts.get(symbolId) + 1);
+                    symbolPositions.get(symbolId).push([col, row]);
+                }
+            }
+
+            let allWinPositions = [];
+            let winningSymbolId = null;
+            let maxCount = 0;
+
+            for (const [symbolId, count] of symbolCounts.entries()) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    winningSymbolId = symbolId;
+                }
+            }
+
+            // A win requires at least 4 identical symbols anywhere on the grid.
+            if (maxCount >= 4) {
+                allWinPositions = symbolPositions.get(winningSymbolId);
+            }
+            
+            return {
+                winPositions: allWinPositions,
+                grid: grid
+            };
         }
 
         function getSymbolSrc(id) {
@@ -3053,7 +3044,7 @@
                 symbol.className = 'symbol-item';
                 
                 let symbolId;
-                if (i >= totalSymbols - 6) {
+                if (columnData && columnData.length > 0 && i >= totalSymbols - 6) {
                     // Last 6 symbols are the target result
                     symbolId = columnData[i - (totalSymbols - 6)];
                 } else {
@@ -3111,7 +3102,7 @@
             slotArea.innerHTML = '';
             
             for (let col = 0; col < 5; col++) {
-                const reel = createReel(grid[col], col);
+                const reel = createReel(grid ? grid[col] : [], col);
                 slotArea.appendChild(reel);
             }
             // slot area initialized
@@ -3131,52 +3122,6 @@
                     }
                 }
             });
-        }
-
-        function updateUI(state) {
-            const stateData = gameStates[state];
-            // Stop Zeus lightning when changing to states that shouldn't keep it.
-            // Keep lightning for `mega` and `cta` states (they want persistent lightning there).
-            try {
-                if (!['mega', 'cta'].includes(state)) {
-                    stopZeusLightning();
-                }
-            } catch(e) {}
-
-            zeusImg.src = stateData.zeus;
-            title.textContent = stateData.title;
-            subtitle.textContent = stateData.subtitle || '';
-            
-            // Handle button styling and text based on state
-            if (state === 'mega') {
-                // Hide SPIN button for mega win, show COLLECT BONUS
-                spinBtn.style.display = 'none';
-                // Start subtle Zeus hovering during MEGA and keep lightning active until collect
-                try { if (zeusController && typeof zeusController.startHover === 'function') zeusController.startHover(6, 0.8); } catch(e) {}
-                setTimeout(() => {
-                    // Use configurable collect button text from state or global config
-                    const collectText = (stateData && stateData.collectBtnText) || (gameStates && gameStates.collectBtnText) || 'COLLECT BONUS';
-                    const collectHref = (stateData && stateData.collectHref) || (gameStates && gameStates.collectHref) || '#';
-                    spinBtn.textContent = collectText;
-                    spinBtn.classList.remove('bonus-btn');
-                    spinBtn.classList.add('collect-btn');
-                    // Add configurable href (as data attribute) and role
-                    try { spinBtn.setAttribute('data-href', collectHref); spinBtn.setAttribute('role', 'link'); } catch(e) {}
-                    spinBtn.style.display = 'block';
-                }, 2000); // Show collect button after 2 seconds
-            } else if (state === 'cta') {
-                spinBtn.textContent = stateData.btnText;
-                spinBtn.classList.add('bonus-btn');
-                spinBtn.classList.remove('collect-btn');
-                spinBtn.style.display = 'block';
-                // Keep Zeus lightning active while CTA/collect button is shown
-                try { if (zeusController && typeof zeusController.startHover === 'function') zeusController.startHover(5, 0.9); } catch(e) {}
-                try { createZeusLightning(); } catch(e) {}
-            } else {
-                spinBtn.textContent = stateData.btnText;
-                spinBtn.classList.remove('bonus-btn', 'collect-btn');
-                spinBtn.style.display = 'block';
-            }
         }
 
         async function spinReels(targetGrid, winPositions) {
@@ -3568,7 +3513,8 @@
                     const symbolsToRemove = [];
                     
                     winningRows.forEach(row => {
-                        const symbolIndex = totalSymbols - 6 + row;
+                        // The visible symbols are at the top of the DOM due to prepend, so index is just the row.
+                        const symbolIndex = row;
                         const symbolElement = column.children[symbolIndex];
                         if (symbolElement) {
                             symbolsToRemove.push(symbolElement);
@@ -3655,43 +3601,86 @@
             });
         }
 
-        async function nextSpin() {
-            const stateData = gameStates[currentState];
+        const winLevelUI = {
+            'none': {
+                zeus: "assets/animations/zeus_pose_all-zeus_idle.gif",
+                title: "Попробуй ещё раз",
+                btnText: "SPIN",
+            },
+            'small': {
+                zeus: "assets/animations/zeus_pose_all-zeus_idle_thunder.gif",
+                title: "Small Win!",
+                btnText: "SPIN",
+            },
+            'medium': {
+                zeus: "assets/animations/zeus_pose_all-zeus_summon_titan_symbol.gif",
+                title: "Medium Win!",
+                btnText: "SPIN",
+            },
+            'big': {
+                zeus: "assets/animations/zeus_pose_all-zeus_idle_thunder.gif",
+                title: "Big Win!",
+                btnText: "SPIN",
+            },
+            'mega': {
+                zeus: "assets/animations/zeus_pose_all-zeus_super_charging_wild.gif",
+                title: "MEGA WIN",
+                btnText: "COLLECT BONUS",
+            }
+        };
+
+        function updateUIForWinLevel(winLevel) {
+            const uiData = winLevelUI[winLevel] || winLevelUI['none'];
             
-            if (currentState === 'cta') {
-                // CTA action - remove mega lightning overlay if present and restart game
+            zeusImg.src = uiData.zeus;
+            title.textContent = uiData.title;
+            spinBtn.textContent = uiData.btnText;
+
+            if (winLevel === 'mega') {
+                spinBtn.classList.add('collect-btn');
+                spinBtn.classList.remove('bonus-btn');
+            } else {
+                spinBtn.classList.remove('bonus-btn', 'collect-btn');
+            }
+        }
+
+        async function nextSpin() {
+            if (isSpinning) return;
+
+            if (spinBtn.classList.contains('collect-btn')) {
                 try { removeFullScreenLightning(); } catch(e) {}
                 try { if (zeusController && typeof zeusController.stopHover === 'function') zeusController.stopHover(); } catch(e) {}
                 try { stopZeusLightning(); } catch(e) {}
-                resetTotalWin(); // Reset total win amount
-                updatePreviousWin(0); // Reset previous win
-                currentState = 'welcome';
-                updateUI(currentState);
-                initSlotArea(gameStates[currentState].grid);
+                resetTotalWin();
+                updatePreviousWin(0);
+                
+                updateUIForWinLevel('none');
+                title.textContent = "Сразись за силу Олимпа";
+
+                initSlotArea(generateRandomGrid());
                 return;
             }
 
-            if (!stateData.next) return;
+            // Decide whether to have a winning spin or not
+            const isWinningSpin = Math.random() < 0.5; // 50% chance of winning
 
-            // Move to next state
-            currentState = stateData.next;
-            const nextStateData = gameStates[currentState];
-            
-            // Special handling for mega state
-            if (currentState === 'mega') {
-                if (nextStateData.grid) {
-                    await spinReels(nextStateData.grid, nextStateData.winPositions);
-                }
-                // Show mega UI and let player press COLLECT BONUS (no auto-transition)
-                updateUI(currentState);
-                return;
+            let randomGrid;
+            let winPositions = [];
+            let winLevel = 'none';
+
+            if (isWinningSpin) {
+                const randomCombination = combinations[Math.floor(Math.random() * combinations.length)];
+                randomGrid = generateGridFromCombination(randomCombination);
+                const evaluation = evaluateGrid(randomGrid);
+                winPositions = evaluation.winPositions;
+                winLevel = randomCombination.winLevel;
+            } else {
+                randomGrid = generateRandomGrid();
             }
             
-            if (nextStateData.grid) {
-                await spinReels(nextStateData.grid, nextStateData.winPositions);
-            }
-            
-            updateUI(currentState);
+            await spinReels(randomGrid, winPositions);
+
+            updateUIForWinLevel(winLevel);
         }
 
         // Event listeners
@@ -4400,27 +4389,45 @@
         function performRandomCascade() {
             return new Promise(async resolve => {
                 try {
-                    // pick 6-10 random visible positions across reels
                     const reels = slotArea.querySelectorAll('.reel');
-                    const winPositions = [];
-                    for (let i = 0; i < reels.length; i++) {
-                        const r = reels[i];
-                        const column = r.querySelector('.symbols-column');
-                        const total = column.children.length;
-                        // pick 0..2 possible rows from this column
-                        const picks = Math.random() < 0.6 ? 1 : 0;
-                        if (picks) {
-                            const row = Math.floor(Math.random() * 6); // 0..5
-                            winPositions.push([i, row]);
+                    const allVisibleSymbols = [];
+                    reels.forEach((reel, colIndex) => {
+                        const column = reel.querySelector('.symbols-column');
+                        const symbols = column.children;
+                        // Visible symbols are the first 6 in the DOM due to prepend logic
+                        for (let rowIndex = 0; rowIndex < 6; rowIndex++) {
+                            if (symbols[rowIndex] && symbols[rowIndex].dataset.symbolId) {
+                                allVisibleSymbols.push({
+                                    symbolId: symbols[rowIndex].dataset.symbolId,
+                                    pos: [colIndex, rowIndex]
+                                });
+                            }
+                        }
+                    });
+
+                    // Group symbols by ID
+                    const symbolsById = new Map();
+                    for (const s of allVisibleSymbols) {
+                        if (!symbolsById.has(s.symbolId)) {
+                            symbolsById.set(s.symbolId, []);
+                        }
+                        symbolsById.get(s.symbolId).push(s.pos);
+                    }
+
+                    // Find the largest group of identical symbols to explode.
+                    // Minimum of 3 symbols to form a group for cascading.
+                    let positionsToExplode = [];
+                    let maxCount = 2; 
+                    for (const [symbolId, positions] of symbolsById.entries()) {
+                        if (positions.length > maxCount) {
+                            maxCount = positions.length;
+                            positionsToExplode = positions;
                         }
                     }
 
-                    if (winPositions.length === 0) {
-                        // fallback: remove one symbol in middle of each reel
-                        for (let i = 0; i < reels.length; i++) winPositions.push([i, 2]);
+                    if (positionsToExplode.length > 0) {
+                        await simultaneousExplodeAndFill(positionsToExplode, 'big');
                     }
-
-                    await simultaneousExplodeAndFill(winPositions, 'big');
                     resolve();
                 } catch (e) { console.log('performRandomCascade error', e); resolve(); }
             });
@@ -4707,34 +4714,10 @@
         // Initialize cinematic controller
         let cinematicController = new CinematicWinController();
         // Attempt to load external spin config (if present) so you can edit states/texts/wins
-        async function loadSpinConfig() {
-            try {
-                const resp = await fetch('spin-config.json', { cache: 'no-cache' });
-                if (!resp.ok) throw new Error('No external config');
-                const cfg = await resp.json();
-                if (cfg && typeof cfg === 'object') {
-                    // If an initialState is provided in JSON, use it
-                    if (cfg.initialState) currentState = cfg.initialState;
-                    // Merge/replace gameStates with JSON file (simple replacement for easy editing)
-                    // Keep existing gameStates as fallback for keys not provided
-                    const merged = { ...gameStates };
-                    Object.keys(cfg).forEach(k => {
-                        if (k === 'initialState') return;
-                        merged[k] = cfg[k];
-                    });
-                    gameStates = merged;
-                    console.log('Loaded external spin-config.json');
-                }
-            } catch (e) {
-                console.log('No external spin-config.json found or failed to load:', e);
-            }
-        }
-
         // Initialize game after attempting to load config
         (async () => {
-            await loadSpinConfig();
-            updateUI(currentState);
-            initSlotArea(gameStates[currentState] && gameStates[currentState].grid ? gameStates[currentState].grid : generateRandomGrid());
+            updateUIForWinLevel(currentState);
+            initSlotArea();
 
             // Ensure Zeus is visually centered before any spins start
             try {
