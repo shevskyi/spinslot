@@ -685,7 +685,11 @@
            which gives 6 visible items when column height is 400% and reel viewport is 100% */
         .symbol-item {
             width: 100%;
-            height: calc(100% / 24);
+            /* fixed symbol height via CSS variable to avoid layout jumps
+               default falls back to 1/24 if variable isn't set */
+            height: var(--symbol-height, calc(100% / 24));
+            min-height: var(--symbol-height, calc(100% / 24));
+            max-height: var(--symbol-height, calc(100% / 24));
             background: rgba(255, 255, 255, 0.02);
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             display: flex;
@@ -3096,7 +3100,8 @@
                 const symbol = document.createElement('div');
                 symbol.className = 'symbol-item';
                 // Ensure each symbol occupies 1 / totalSymbols of column height
-                symbol.style.height = `${100 / totalSymbols}%`;
+                // height is controlled via CSS variable --symbol-height (set in JS)
+                symbol.style.height = 'var(--symbol-height)';
                 
                 let symbolId;
                 if (columnData && columnData.length > 0 && i >= totalSymbols - 6) {
@@ -3165,6 +3170,9 @@
             }
             // slot area initialized
 
+            // Ensure symbol pixel sizing matches the reel viewport so symbols remain fixed-sized
+            try { setSymbolPixelSize(); } catch (e) { console.log('setSymbolPixelSize init failed', e); }
+
             // Mark visible symbols
             const reels = slotArea.querySelectorAll('.reel');
             reels.forEach(reel => {
@@ -3221,7 +3229,8 @@
                         const symbol = document.createElement('div');
                         symbol.className = 'symbol-item';
                         // Ensure each symbol occupies 1 / spinLength of column height during spin
-                        symbol.style.height = `${100 / spinLength}%`;
+                        // height is controlled via CSS variable --symbol-height (set in JS)
+                        symbol.style.height = 'var(--symbol-height)';
 
                         let symbolId;
                         if (i >= spinLength - 6) {
@@ -3593,8 +3602,8 @@
                     for (let i = 0; i < symbolsToRemove.length; i++) {
                         const symbol = document.createElement('div');
                         symbol.className = 'symbol-item falling';
-                        // ensure consistent height with current spinLength
-                        symbol.style.height = `${100 / spinLength}%`;
+                        // height is controlled via CSS variable --symbol-height (set in JS)
+                        symbol.style.height = 'var(--symbol-height)';
                         symbol.style.backgroundColor = 'rgba(0, 255, 0, 0.03)';
                         symbol.style.border = '1px solid rgba(255, 255, 255, 0.06)';
 
@@ -4819,6 +4828,38 @@
 
         // Initialize cinematic controller
         let cinematicController = new CinematicWinController();
+        
+        // Compute and set CSS variable for symbol pixel size so items stay fixed height
+        function setSymbolPixelSize() {
+            try {
+                const visibleCount = 6;
+                const spinLength = TOTAL_SPIN_SYMBOLS;
+                const firstReel = slotArea.querySelector('.reel');
+                if (!firstReel) return;
+                const reelViewport = firstReel.getBoundingClientRect();
+                if (!reelViewport || !reelViewport.height) return;
+                const symbolPx = Math.floor(reelViewport.height / visibleCount);
+                // set CSS var on slotArea so CSS picks it up
+                slotArea.style.setProperty('--symbol-height', `${symbolPx}px`);
+
+                // set exact column heights in px so spin math is stable
+                const columns = slotArea.querySelectorAll('.symbols-column');
+                columns.forEach(col => {
+                    col.style.height = `${symbolPx * spinLength}px`;
+                    // ensure each child uses the CSS var (in case some inline heights remain)
+                    Array.from(col.children).forEach(ch => {
+                        try { ch.style.height = 'var(--symbol-height)'; } catch(_){}
+                    });
+                });
+            } catch (e) {
+                console.log('setSymbolPixelSize error', e);
+            }
+        }
+
+        // Recompute symbol size on resize
+        window.addEventListener('resize', () => {
+            try { setSymbolPixelSize(); } catch (e) {}
+        });
         // Attempt to load external spin config (if present) so you can edit states/texts/wins
         // Initialize game after attempting to load config
         (async () => {
