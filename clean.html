@@ -808,12 +808,20 @@
 
         .win-status.mega {
             color: #FF1493;
-            font-size: 2.5em;
+            font-size: 5em;
             text-shadow: 
                 0 0 20px #FF1493,
                 0 0 40px #FF1493,
+                0 0 60px #FF1493,
                 2px 2px 4px rgba(0,0,0,0.8);
             animation: winPulse 1s ease-in-out infinite;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            margin: 0 !important;
+            pointer-events: none;
         }
 
         .win-status.none {
@@ -4417,19 +4425,20 @@
             try {
                 const el = document.createElement('div');
                 el.className = 'mega-win-overlay';
-                el.style.position = 'absolute';
+                el.style.position = 'fixed';
                 el.style.left = '50%';
-                el.style.top = '30%';
+                el.style.top = '50%';
                 el.style.transform = 'translate(-50%, -50%) scale(0.8)';
-                el.style.zIndex = 100000;
+                el.style.zIndex = 999998;
                 el.style.pointerEvents = 'none';
-                el.style.color = '#FFD700';
+                el.style.color = '#FF1493';
                 el.style.textAlign = 'center';
                 el.style.fontFamily = 'Impact, Arial Black, sans-serif';
-                el.style.fontSize = '84px';
-                el.style.letterSpacing = '2px';
-                el.style.textShadow = '0 6px 18px rgba(0,0,0,0.6), 0 0 18px rgba(255,215,0,0.6)';
+                el.style.fontSize = '140px';
+                el.style.letterSpacing = '4px';
+                el.style.textShadow = '0 8px 24px rgba(0,0,0,0.8), 0 0 30px rgba(255,20,147,0.8), 0 0 60px rgba(255,20,147,0.5)';
                 el.style.opacity = '0';
+                el.style.fontWeight = 'bold';
                 el.textContent = 'MEGA WIN';
                 document.querySelector('.game-container').appendChild(el);
                 requestAnimationFrame(() => {
@@ -4460,9 +4469,9 @@
                     el.className = 'falling-multiplier';
                     el.style.position = 'absolute';
                     el.style.left = '50%';
-                    el.style.top = '-10%';
+                    el.style.top = '-50%';
                     el.style.transform = 'translateX(-50%) scale(0.8)';
-                    el.style.zIndex = 100001;
+                    el.style.zIndex = 999999;
                     el.style.pointerEvents = 'none';
                     el.style.color = '#fff';
                     el.style.textAlign = 'center';
@@ -4479,7 +4488,7 @@
                     // Animate falling into center of slot area
                     const slotRect = slotArea.getBoundingClientRect();
                     const gameRect = gameContainer.getBoundingClientRect();
-                    const targetTop = (slotRect.top - gameRect.top) + 24; // land near top of slot area
+                    const targetTop = (slotRect.top - gameRect.top)/1.5; // land near top of slot area
 
                     requestAnimationFrame(() => {
                         el.style.transition = 'top 900ms cubic-bezier(0.2,0.9,0.2,1), opacity 300ms ease-out, transform 700ms cubic-bezier(0.2,0.9,0.2,1)';
