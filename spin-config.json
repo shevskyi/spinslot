@@ -4,16 +4,16 @@
   "collectHref": "#",
   "welcome": {
     "zeus": "assets/animations/zeus_pose_all-zeus_idle.gif",
-    "title": "Сразись за силу Олимпа",
-    "subtitle": "Нажми SPIN",
+    "title": "Battle for the Power of Olympus",
+    "subtitle": "Press SPIN",
     "btnText": "SPIN",
     "grid": [],
     "next": "win1"
   },
   "loss": {
     "zeus": "assets/animations/zeus_pose_all-zeus_idle.gif",
-    "title": "Попробуй ещё раз",
-    "subtitle": "Попробуй ещё раз",
+    "title": "Try Again",
+    "subtitle": "Try again",
     "btnText": "SPIN",
     "grid": [],
     "winPositions": [],
@@ -22,7 +22,7 @@
   "win1": {
     "zeus": "assets/animations/zeus_pose_all-zeus_idle_thunder.gif",
     "title": "Small Win!",
-    "subtitle": "Неплохо. Продолжим?",
+    "subtitle": "Not bad. Continue?",
     "btnText": "SPIN",
     "grid": [["lv1","hv1","hv1","hv1","lv1","lv2"],["lv2","lv3","lv4","lv5","lv2","lv2"],["lv3","lv4","lv5","lv1","lv2","lv3"],["lv4","lv5","lv1","lv2","lv3","lv4"],["lv5","lv1","lv2","lv3","lv4","lv5"]],
     "winPositions": [[0,0],[1,0],[2,0],[3,0],[4,0],[5,0]],
@@ -31,7 +31,7 @@
   "win2": {
     "zeus": "assets/animations/zeus_pose_all-zeus_summon_titan_symbol.gif",
     "title": "Medium Win!",
-    "subtitle": "Близко. Ещё один шаг.",
+    "subtitle": "So close. One more step.",
     "btnText": "SPIN",
     "grid": [["lv1","hv2","hv2","hv2","lv1","lv2"],["lv2","hv2","hv2","hv2","lv2","lv3"],["lv3","lv4","lv5","lv1","lv4","lv5"],["lv4","lv5","lv1","lv2","lv3","lv4"],["lv5","lv1","lv2","lv3","lv4","lv5"]],
     "winPositions": [[0,0],[1,0],[2,0],[3,0],[4,0],[5,0]],
@@ -40,7 +40,7 @@
   "fake": {
     "zeus": "assets/animations/zeus_pose_all-zeus_idle_thunder.gif",
     "title": "Big Win!",
-    "subtitle": "Великий виграш",
+    "subtitle": "Big win",
     "btnText": "SPIN",
     "grid": [["hv3","hv3","hv3","lv4","lv5","lv1"],["hv3","hv3","hv3","lv5","lv1","lv2"],["hv3","hv3","hv3","lv1","lv2","lv3"],["lv4","lv5","lv1","lv2","lv3","lv4"],["lv5","lv1","lv2","lv3","lv4","lv5"]],
     "winPositions": [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],
@@ -49,7 +49,7 @@
   "mega": {
     "zeus": "assets/png/characters/zeus_suuper_charging_wild.png",
     "title": "MEGA WIN",
-    "subtitle": "МЕГА ВИГРАШ!!!",
+    "subtitle": "MEGA WIN!!!",
     "btnText": "SPIN",
     "collectBtnText": "COLLECT BONUS",
     "collectHref": "#",
@@ -60,8 +60,8 @@
   "cta": {
     "zeus": "assets/png/characters/zeus_suuper_charging_wild.png",
     "title": "MEGA WIN",
-    "subtitle": "Поздравляем! Вы выиграли мега джекпот!",
-    "btnText": "Играть сейчас / Забрать бонус",
+    "subtitle": "Congratulations! You've won the mega jackpot!",
+    "btnText": "Play Now / Claim Bonus",
     "collectBtnText": "COLLECT BONUS",
     "collectHref": "#",
     "next": "welcome"

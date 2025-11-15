@@ -1658,7 +1658,7 @@
         <!-- UI -->
         <div class="ui-container">
             <div id="title" class="title">Battle for the Power of Olympus</div>
-            <div id="subtitle" class="subtitle">Натисни SPIN і випробуй удачу</div>
+            <div id="subtitle" class="subtitle">Press SPIN and try your luck</div>
             <div id="win-status" class="win-status"></div>
             <button id="spin-btn" class="spin-btn">SPIN</button>
         </div>
@@ -3487,14 +3487,14 @@
         // Show win status
         function showWinStatus(winLevel) {
             const statusMessages = {
-                'none': 'Неудача',
-                'small': 'Малий виграш!',
-                'medium': 'Великий виграш!',
-                'big': 'Дуже великий виграш!',
-                'mega': 'МЕГА ВИГРАШ!!!'
+                'none': 'No Win',
+                'small': 'Small Win!',
+                'medium': 'Big Win!',
+                'big': 'Very Big Win!',
+                'mega': 'MEGA WIN!!!'
             };
 
-            winStatus.textContent = statusMessages[winLevel] || 'Неудача';
+            winStatus.textContent = statusMessages[winLevel] || 'No Win';
             winStatus.className = `win-status ${winLevel}`;
             winStatus.classList.add('show');
             
@@ -3694,7 +3694,7 @@
         const winLevelUI = {
             'none': {
                 zeus: "assets/animations/zeus_pose_all-zeus_idle.gif",
-                title: "Попробуй ещё раз",
+                title: "Try Again",
                 btnText: "SPIN",
             },
             'small': {
@@ -3745,7 +3745,7 @@
                 updatePreviousWin(0);
                 
                 updateUIForWinLevel('none');
-                title.textContent = "Сразись за силу Олимпа";
+                title.textContent = "Battle for the Power of Olympus";
 
                 initSlotArea(generateRandomGrid());
                 spinCount = 0; // Reset spin count
@@ -4865,7 +4865,7 @@
         (async () => {
             // Initialize minimal welcome UI and slot area
             try {
-                if (title) title.textContent = 'Сразись за силу Олимпа';
+                if (title) title.textContent = 'Battle for the Power of Olympus';
                 if (subtitle) subtitle.textContent = '';
                 if (spinBtn) { spinBtn.textContent = 'SPIN'; spinBtn.classList.remove('collect-btn','bonus-btn'); spinBtn.disabled = false; }
             } catch (e) {}
