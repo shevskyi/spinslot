@@ -646,7 +646,7 @@
             position: absolute;
             top: 35%;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translateX(-50%) rotate(180deg) scaleX(-1);
             width: 85%;
             height: 40%;
             display: flex;
@@ -709,6 +709,7 @@
             display: block;
             margin: 0;
             padding: 0;
+            transform: rotate(180deg) scaleX(1) !important;
         }
 
         .symbol-item.winning {
