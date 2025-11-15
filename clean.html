@@ -1919,7 +1919,79 @@
         let isSpinning = false;
         let totalWinAmount = 0; // Track total winnings
         let spinCount = 0;
-        const predefinedOutcomes = ['win', 'bigger_win', 'fake_lose', 'mega_win'];
+        
+        // ЧІТКА СТРУКТУРА СПІНІВ:
+        // Спіни 1-4: Рандомні (win, bigger_win, fake_lose)
+        // Спін 5: MEGA WIN (гарантований)
+        // Спіни 6-9: Рандомні (win, bigger_win, fake_lose)
+        // Спін 10: MEGA WIN (гарантований)
+        // І так далі...
+        
+        const MEGA_WIN_INTERVAL = 5; // MEGA WIN кожні 5 спінів (на 5, 10, 15, 20...)
+        const nonMegaOutcomes = ['win', 'bigger_win', 'fake_lose'];
+        let currentShuffledSequence = null;
+        
+        // Function to shuffle array (Fisher-Yates)
+        function shuffleArray(arr) {
+            const shuffled = [...arr];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+        
+        // Глобальна змінна для запам'ятовування останнього результату
+        let lastOutcome = null;
+        
+        // Get next outcome (з логікою чергування без повторень)
+        function getNextOutcome() {
+            const currentSpinNumber = spinCount + 1;
+            const isMegaWinSpin = (currentSpinNumber % MEGA_WIN_INTERVAL === 0);
+            
+            if (isMegaWinSpin) {
+                lastOutcome = 'mega_win';
+                return 'mega_win';
+            }
+            
+            let nextOutcome;
+            
+            // ЛОГІКА БЕЗ ПОВТОРЕНЬ:
+            // Послідовність: small → big → lose → mega
+            //               small → lose → big → mega
+            //               big → lose → small → mega
+            //               lose → small → big → mega
+            //               lose → big → small → mega
+            
+            switch (lastOutcome) {
+                case null:
+                    // Перший спін - рандомно вибираємо
+                    nextOutcome = nonMegaOutcomes[Math.floor(Math.random() * nonMegaOutcomes.length)];
+                    break;
+                    
+                case 'win':
+                    // Після small win: або big win, або fake_lose
+                    nextOutcome = Math.random() < 0.6 ? 'bigger_win' : 'fake_lose';
+                    break;
+                    
+                case 'bigger_win':
+                    // Після big win: або fake_lose, або win
+                    nextOutcome = Math.random() < 0.6 ? 'fake_lose' : 'win';
+                    break;
+                    
+                case 'fake_lose':
+                    // Після try again: або win, або bigger_win (рівна ймовірність)
+                    nextOutcome = Math.random() < 0.5 ? 'win' : 'bigger_win';
+                    break;
+                    
+                default:
+                    nextOutcome = nonMegaOutcomes[Math.floor(Math.random() * nonMegaOutcomes.length)];
+            }
+            
+            lastOutcome = nextOutcome;
+            return nextOutcome;
+        }
+        
         // When true, only play the explosion sound ('ice-win-6') and suppress other sounds
         let explosionOnlyMode = false;
         // Percentage of total to deduct on a losing spin (default = 2%)
@@ -3199,7 +3271,7 @@
             });
         }
 
-        async function spinReels(targetGrid, winPositions) {
+        async function spinReels(targetGrid, winPositions, explicitWinLevel = null) {
             if (isSpinning) return;
             isSpinning = true;
             spinBtn.disabled = true;
@@ -3207,7 +3279,8 @@
             // starting spin (logs removed for production)
             playSound('spin-sound');
             // Determine pre-configured win level (used later to trigger mega cinematic)
-            const preWinLevel = calculateWinLevel(winPositions || []);
+            // Якщо передано явний winLevel, використовуємо його, інакше розраховуємо
+            const preWinLevel = explicitWinLevel || calculateWinLevel(winPositions || []);
 
             // Spin start effects: flash, motion-blur, top darken, reel pull-down
             try { spinStartEffects(); } catch (e) { console.log('spinStartEffects failed', e); }
@@ -3380,11 +3453,13 @@
             }
 
             // Calculate win level for showing status
-            const winLevel = calculateWinLevel(winPositions || []);
+            // ВАЖНО: Використовуємо передану winLevel, а не розраховуємо заново!
+            const winLevel = explicitWinLevel || calculateWinLevel(winPositions || []);
             
             // Show winning animations (this will handle the complete sequence now)
             if (winPositions && winPositions.length > 0) {
-                await showWinningAnimations(winPositions);
+                // Передаємо winLevel до showWinningAnimations()
+                await showWinningAnimations(winPositions, winLevel);
             } else {
                 // For no wins, deduct a small percent from total and show loss status
                 try {
@@ -3513,12 +3588,12 @@
             }, 3000);
         }
 
-        async function showWinningAnimations(winPositions) {
+        async function showWinningAnimations(winPositions, explicitWinLevel = null) {
             return new Promise(async resolve => {
                 // starting cinematic win animation (logs removed)
                 
-                // Calculate win level
-                const winLevel = calculateWinLevel(winPositions);
+                // Calculate win level або використовуємо переданий
+                const winLevel = explicitWinLevel || calculateWinLevel(winPositions);
                 // win level computed
                 
                 // If no win, just show status and return
@@ -3758,16 +3833,19 @@
 
                 initSlotArea(generateRandomGrid());
                 spinCount = 0; // Reset spin count
+                lastOutcome = null; // Reset outcome sequence
                 return;
             }
 
-            const outcome = predefinedOutcomes[spinCount % predefinedOutcomes.length];
-            spinCount++;
-
+            // ===== ЛОГІКА СПІНУ =====
+            // Отримуємо наступний результат (рандомний або MEGA WIN)
+            const outcome = getNextOutcome();
+            
             let randomGrid;
             let winPositions = [];
             let winLevel = 'none';
 
+            // Конвертуємо outcome до winLevel
             switch (outcome) {
                 case 'win':
                     winLevel = 'small';
@@ -3781,29 +3859,38 @@
                 case 'mega_win':
                     winLevel = 'mega';
                     break;
+                default:
+                    winLevel = 'none';
             }
 
+            // Збільшуємо лічильник спінів
+            spinCount++;
+
+            // Генеруємо гід і позиції переможців на основі winLevel
             if (winLevel !== 'none') {
                 const possibleCombinations = combinations.filter(c => c.winLevel === winLevel);
-                const randomCombination = possibleCombinations[Math.floor(Math.random() * possibleCombinations.length)];
-                if (randomCombination) {
+                if (possibleCombinations.length > 0) {
+                    const randomCombination = possibleCombinations[Math.floor(Math.random() * possibleCombinations.length)];
                     randomGrid = generateGridFromCombination(randomCombination);
                     const evaluation = evaluateGrid(randomGrid);
                     winPositions = evaluation.winPositions;
                 } else {
-                    // Fallback to random grid if no combination found for the winLevel
+                    // Fallback: якщо немає комбінацій для цього рівня
                     randomGrid = generateRandomGrid();
                     winPositions = [];
                     winLevel = 'none';
                 }
             } else {
+                // Loss або fake_lose
                 randomGrid = generateRandomGrid();
                 winPositions = [];
                 winLevel = 'none';
             }
             
-            await spinReels(randomGrid, winPositions);
+            // Запускаємо спін з ЯВНИМ winLevel (щоб він не був перераховуваний)
+            await spinReels(randomGrid, winPositions, winLevel);
 
+            // Оновлюємо UI для показу правильного рівня виграшу
             updateUIForWinLevel(winLevel);
         }
 
